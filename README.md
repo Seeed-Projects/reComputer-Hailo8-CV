@@ -35,30 +35,11 @@ organized in sub-repositories.
 
 ---
 
-## Quick start (one-command, pre-built image)
-
-The quick-start example below uses the published YOLOv8 image, which already
-contains the source code, HailoRT wheel, ffmpeg, and the three Model Zoo `.hef`
-weights (`yolov8n/s/m`). You only need a working Hailo toolchain on the host.
-
-Published GHCR images are stored under this repository namespace:
-
-| Model | Image |
-|---|---|
-| YOLOv8 | `ghcr.io/seeed-projects/recomputer-r20-cv/yolov8:latest` |
-| YOLOv5 | `ghcr.io/seeed-projects/recomputer-r20-cv/yolov5:latest` |
-| YOLOv10 | `ghcr.io/seeed-projects/recomputer-r20-cv/yolov10:latest` |
-| YOLOv11 | `ghcr.io/seeed-projects/recomputer-r20-cv/yolov11:latest` |
-| YOLOv8 Pose | `ghcr.io/seeed-projects/recomputer-r20-cv/yolov8_pose:latest` |
-| SCRFD | `ghcr.io/seeed-projects/recomputer-r20-cv/scrfd:latest` |
-| SCDepthV3 | `ghcr.io/seeed-projects/recomputer-r20-cv/scdepthv3:latest` |
-| FastDepth | `ghcr.io/seeed-projects/recomputer-r20-cv/fast_depth:latest` |
-| Person Attribute ResNet | `ghcr.io/seeed-projects/recomputer-r20-cv/person_attr_resnet:latest` |
-| SegFormer B0 BN | `ghcr.io/seeed-projects/recomputer-r20-cv/segformer_b0_bn:latest` |
-| U-Net MobileNetV2 | `ghcr.io/seeed-projects/recomputer-r20-cv/unet_mobilenet_v2:latest` |
-| DeepLabV3 MobileNetV2 | `ghcr.io/seeed-projects/recomputer-r20-cv/deeplab_v3_mobilenet_v2:latest` |
+## Quick start
 
 ### 1. Host prep (one-time, on the device)
+
+The following steps are common to all Hailo-8 platforms supported by this project.
 
 #### Install Docker
 
@@ -86,39 +67,19 @@ hailortcli fw-control identify     # should report 4.23.0
 ls /dev/hailo0
 ```
 
-### 2. Run
+### 2. Run platform-specific examples
 
-```bash
-sudo docker run --rm --privileged --net=host \
-    -e PYTHONUNBUFFERED=1 \
-    --device /dev/hailo0:/dev/hailo0 \
-    -v /usr/lib/libhailort.so.4.23.0:/usr/lib/libhailort.so.4.23.0:ro \
-    -v /usr/lib/libhailort.so:/usr/lib/libhailort.so:ro \
-    ghcr.io/seeed-projects/recomputer-r20-cv/yolov8:latest
-```
+Pre-built Docker images and run commands are provided in each platform's
+sub-repository. Select your hardware from the table below to get started:
 
-Docker will pull the image on first run (~1.8 GB). The container then loops the
-bundled `video/test.mp4` and serves the Web UI on port `8000` — open
-`http://<device_IP>:8000` in a browser.
+| Platform | Quick-start link |
+|---|---|
+| **reComputer R20** (Raspberry Pi 5) | [reComputer-R20-CV § Quick start](https://github.com/Seeed-Projects/reComputer-R20-CV#quick-start-one-command-pre-built-image) |
+| reComputer Hailo-10H | [reComputer-Hailo10H-CV](https://github.com/Seeed-Projects/reComputer-Hailo10H-CV) (coming soon) |
 
-> **Why the `libhailort.so` bind-mount?** The image ships only the Python
-> bindings; the native library has to come from the host's `hailo-all` package.
-> If your firmware version isn't `4.23.0`, replace both `4.23.0` references with
-> the version printed by `hailortcli fw-control identify` (and rebuild the image
-> from source against a matching wheel if the major.minor differs).
-
-### USB camera mode
-
-```bash
-sudo docker run --rm --privileged --net=host \
-    -e PYTHONUNBUFFERED=1 \
-    --device /dev/hailo0:/dev/hailo0 \
-    --device /dev/video0:/dev/video0 \
-    -v /usr/lib/libhailort.so.4.23.0:/usr/lib/libhailort.so.4.23.0:ro \
-    -v /usr/lib/libhailort.so:/usr/lib/libhailort.so:ro \
-    ghcr.io/seeed-projects/recomputer-r20-cv/yolov8:latest \
-    python web_detection.py --model_path model/yolov8n.hef --camera_id 0
-```
+> **Note:** Published GHCR images are currently available for the R20 platform
+> under the `ghcr.io/seeed-projects/recomputer-r20-cv/` namespace. Images for
+> other platforms will be added here as they are validated.
 
 ---
 
