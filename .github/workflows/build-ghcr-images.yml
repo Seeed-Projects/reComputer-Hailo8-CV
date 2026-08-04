@@ -1,0 +1,68 @@
+name: Build Hailo-8 Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-ghcr-images.yml"
+      - "docker/hailo8/**"
+      - "src/rpi5_hailo8_*/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: seeed-projects/recomputer-hailo8-cv
+  SOURCE_REPOSITORY: https://github.com/Seeed-Projects/reComputer-Hailo8-CV
+
+jobs:
+  build-centerpose:
+    name: Build centerpose_regnetx_800mf
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/centerpose_regnetx_800mf
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.title=centerpose_regnetx_800mf
+            org.opencontainers.image.description=CenterPose RegNetX-800MF for Raspberry Pi 5 / CM5 + Hailo-8
+            org.opencontainers.image.source=${{ env.SOURCE_REPOSITORY }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/rpi5_hailo8_centerpose_regnetx_800mf
+          file: ./docker/hailo8/centerpose_regnetx_800mf.dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=centerpose_regnetx_800mf
+          cache-to: type=gha,mode=max,scope=centerpose_regnetx_800mf
+          provenance: false

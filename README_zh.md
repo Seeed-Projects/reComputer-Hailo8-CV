@@ -1,19 +1,19 @@
 # reComputer-Hailo8-CV
 
-[English] | [中文](./README_zh.md)
+[English](./README.md) | 中文
 
-Hailo-8 computer-vision applications for Seeed reComputer devices. This first
-module deploys CenterPose RegNetX-800MF on Raspberry Pi 5 / CM5 with HailoRT
-4.23.x, following the directory and Docker conventions of
-[`reComputer-R20-CV`](https://github.com/Seeed-Projects/reComputer-R20-CV).
+本仓库为 Seeed reComputer 设备提供 Hailo-8 计算机视觉应用。首个模块为
+CenterPose RegNetX-800MF，在 Raspberry Pi 5 / CM5 与 HailoRT 4.23.x 上运行；
+目录和 Docker 约定参考
+[`reComputer-R20-CV`](https://github.com/Seeed-Projects/reComputer-R20-CV)。
 
-## Included model
+## 已包含模型
 
-| Model | Task | Parameters | Module | Container image |
+| 模型 | 任务 | 参数量 | 模块 | 容器镜像 |
 |---|---|---:|---|---|
-| CenterPose RegNetX-800MF | Multi-person pose estimation | 12.31M | `src/rpi5_hailo8_centerpose_regnetx_800mf/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/centerpose_regnetx_800mf:latest` |
+| CenterPose RegNetX-800MF | 多人姿态估计 | 12.31M | `src/rpi5_hailo8_centerpose_regnetx_800mf/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/centerpose_regnetx_800mf:latest` |
 
-## Repository layout
+## 仓库结构
 
 ```text
 reComputer-Hailo8-CV/
@@ -30,9 +30,9 @@ reComputer-Hailo8-CV/
     └── README_zh.md
 ```
 
-## Run
+## 运行
 
-The host must expose `/dev/hailo0` and use HailoRT 4.23.x.
+宿主机需要存在 `/dev/hailo0`，并安装 HailoRT 4.23.x。
 
 ```bash
 sudo docker run --rm \
@@ -49,4 +49,5 @@ sudo docker run --rm \
     --video_path video/test.mp4
 ```
 
-Open `http://<device_IP>:8000`. See the module [README](./src/rpi5_hailo8_centerpose_regnetx_800mf/README.md) for build, camera, and REST API instructions.
+浏览器打开 `http://<设备IP>:8000`。构建、摄像头和 REST API 说明见模块
+[中文 README](./src/rpi5_hailo8_centerpose_regnetx_800mf/README_zh.md)。
