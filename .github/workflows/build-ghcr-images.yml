@@ -8,6 +8,16 @@ on:
       - "docker/hailo8/**"
       - "src/rpi5_hailo8_*/**"
   workflow_dispatch:
+    inputs:
+      model:
+        description: "Model image to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - centerpose_regnetx_800mf
+          - stdc1
 
 permissions:
   contents: read
@@ -19,22 +29,69 @@ env:
   SOURCE_REPOSITORY: https://github.com/Seeed-Projects/reComputer-Hailo8-CV
 
 jobs:
-  build-centerpose:
-    name: Build centerpose_regnetx_800mf
+  build:
+    name: Build ${{ matrix.model }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - model: centerpose_regnetx_800mf
+            description: CenterPose RegNetX-800MF pose estimation
+          - model: stdc1
+            description: STDC1 semantic segmentation
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select model
+        id: selected
+        shell: bash
+        run: |
+          build=false
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.model }}" == "all" || "${{ github.event.inputs.model }}" == "${{ matrix.model }}" ]]; then
+              build=true
+            fi
+          else
+            before_sha="${{ github.event.before }}"
+            current_sha="${{ github.sha }}"
+
+            if [[ -z "$before_sha" || "$before_sha" =~ ^0+$ ]] || ! git cat-file -e "${before_sha}^{commit}" 2>/dev/null; then
+              changed_files="$(git show --pretty=format: --name-only "$current_sha")"
+            else
+              changed_files="$(git diff --name-only "$before_sha" "$current_sha")"
+            fi
+
+            echo "Changed files:"
+            echo "$changed_files"
+
+            if echo "$changed_files" | grep -Fxq ".github/workflows/build-ghcr-images.yml"; then
+              build=true
+            elif echo "$changed_files" | grep -Eq "^src/rpi5_hailo8_${{ matrix.model }}/|^docker/hailo8/${{ matrix.model }}\\.dockerfile$"; then
+              build=true
+            fi
+          fi
+
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "Build ${{ matrix.model }}: $build"
 
       - name: Set up QEMU
+        if: steps.selected.outputs.build == 'true'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
+        if: steps.selected.outputs.build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: steps.selected.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -42,75 +99,29 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker metadata
+        if: steps.selected.outputs.build == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/centerpose_regnetx_800mf
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.model }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
           labels: |
-            org.opencontainers.image.title=centerpose_regnetx_800mf
-            org.opencontainers.image.description=CenterPose RegNetX-800MF for Raspberry Pi 5 / CM5 + Hailo-8
+            org.opencontainers.image.title=${{ matrix.model }}
+            org.opencontainers.image.description=${{ matrix.description }} for CM5 + Hailo-8
             org.opencontainers.image.source=${{ env.SOURCE_REPOSITORY }}
 
       - name: Build and push
+        if: steps.selected.outputs.build == 'true'
         uses: docker/build-push-action@v6
         with:
-          context: ./src/rpi5_hailo8_centerpose_regnetx_800mf
-          file: ./docker/hailo8/centerpose_regnetx_800mf.dockerfile
+          context: ./src/rpi5_hailo8_${{ matrix.model }}
+          file: ./docker/hailo8/${{ matrix.model }}.dockerfile
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=centerpose_regnetx_800mf
-          cache-to: type=gha,mode=max,scope=centerpose_regnetx_800mf
-          provenance: false
-
-  build-stdc1:
-    name: Build stdc1
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/stdc1
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=sha-
-          labels: |
-            org.opencontainers.image.title=stdc1
-            org.opencontainers.image.description=STDC1 semantic segmentation for Raspberry Pi 5 / CM5 + Hailo-8
-            org.opencontainers.image.source=${{ env.SOURCE_REPOSITORY }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: ./src/rpi5_hailo8_stdc1
-          file: ./docker/hailo8/stdc1.dockerfile
-          platforms: linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=stdc1
-          cache-to: type=gha,mode=max,scope=stdc1
+          cache-from: type=gha,scope=${{ matrix.model }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.model }}
           provenance: false
