@@ -18,6 +18,7 @@ on:
           - all
           - centerpose_regnetx_800mf
           - stdc1
+          - centernet_resnet_v1_18_postprocess
 
 permissions:
   contents: read
@@ -40,6 +41,8 @@ jobs:
             description: CenterPose RegNetX-800MF pose estimation
           - model: stdc1
             description: STDC1 semantic segmentation
+          - model: centernet_resnet_v1_18_postprocess
+            description: CenterNet (resnet_v1_18) object detection
 
     steps:
       - name: Checkout
