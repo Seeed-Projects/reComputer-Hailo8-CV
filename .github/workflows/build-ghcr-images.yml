@@ -19,6 +19,7 @@ on:
           - centerpose_regnetx_800mf
           - stdc1
           - centernet_resnet_v1_18_postprocess
+          - centernet_resnet_v1_50_postprocess
 
 permissions:
   contents: read
@@ -43,6 +44,8 @@ jobs:
             description: STDC1 semantic segmentation
           - model: centernet_resnet_v1_18_postprocess
             description: CenterNet (resnet_v1_18) object detection
+          - model: centernet_resnet_v1_50_postprocess
+            description: CenterNet (resnet_v1_50) object detection
 
     steps:
       - name: Checkout
