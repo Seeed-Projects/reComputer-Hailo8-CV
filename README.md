@@ -67,13 +67,18 @@ sudo systemctl start docker
 
 ```bash
 sudo apt update
-sudo apt install hailo-all
+sudo apt install hailort hailort-pcie-driver python3-hailort
 sudo reboot
 
 # After reboot, confirm the chip and note the firmware version
 hailortcli fw-control identify     # should report 4.23.x
 ls /dev/hailo0
 ```
+
+> Install the three HailoRT packages directly — they come from the Raspberry Pi
+> OS archive at 4.23.x and cover runtime, PCIe driver + firmware, and the
+> Python API. Avoid the `hailo-all` meta-package: it can pull newer Hailo-10H /
+> 5.x packages that don't match the Hailo-8 4.23.x baseline.
 
 ### 2. Run
 
