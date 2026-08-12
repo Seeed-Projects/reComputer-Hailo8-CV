@@ -712,9 +712,16 @@ def _first_output(hailo_output):
 
 def _per_class_iterable(output):
     """Return an object indexable by cls_id, each yielding (N, 5) detection
-    rows [ymin, xmin, ymax, xmax, score]. Handles the three HailoRT layouts."""
-    arr = np.asarray(output)
-    # Object dtype: HailoRT NMS-by-score -> output[0] is the per-class list.
+    rows [ymin, xmin, ymax, xmax, score]. Handles the HailoRT NMS layouts:
+    ragged/object (NMS-by-score), dense float32 (1,C,5,D) or (1,C,D,5)."""
+    # Ragged (NMS-by-score): output is shape (1, num_classes) where each element
+    # is a per-class (N, 5) array with N varying by class. np.asarray raises
+    # ValueError on this inhomogeneous shape, so guard it and take output[0]
+    # (the per-class iterable) directly — same path R20 yolov8 uses.
+    try:
+        arr = np.asarray(output)
+    except ValueError:
+        return output[0]
     if arr.dtype == object:
         return output[0]
     # Dense float32.
@@ -728,6 +735,9 @@ def _per_class_iterable(output):
         if arr.shape[1] == 5 and arr.shape[2] != 5:
             arr = np.transpose(arr, (0, 2, 1))
         return arr
+    if arr.ndim == 2:
+        # (1, num_classes) object-ish: output[0] is the per-class iterable.
+        return output[0]
     # Fallback: assume output[0] is already the per-class iterable.
     return output[0]
 
@@ -748,18 +758,24 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     per_class = _per_class_iterable(output)
 
     if not _DET_OUTPUT_LOGGED:
-        raw = np.asarray(output)
+        try:
+            raw = np.asarray(output)
+            shape_str, dtype_str = str(raw.shape), str(raw.dtype)
+        except ValueError:
+            shape_str, dtype_str = "ragged (NMS-by-score)", "object"
         print(
             f"[EfficientDet] raw output type={type(output).__name__}, "
-            f"shape={getattr(raw, 'shape', None)}, dtype={getattr(raw, 'dtype', None)}",
+            f"shape={shape_str}, dtype={dtype_str}",
             flush=True,
         )
         _DET_OUTPUT_LOGGED = True
 
     boxes, classes, scores = [], [], []
     for cls_id, dets in enumerate(per_class):
+        if dets is None:
+            continue
         dets = np.asarray(dets)
-        if dets.size == 0:
+        if dets.size == 0 or dets.ndim == 0:
             continue
         if dets.ndim == 1:
             dets = dets.reshape(-1, 5)
