@@ -24,6 +24,7 @@ on:
           - damoyolo_tinynas_l25_s
           - damoyolo_tinynas_l35_m
           - efficientdet_lite0
+          - efficientdet_lite1
 
 permissions:
   contents: read
@@ -58,6 +59,8 @@ jobs:
             description: DAMO-YOLO (tinynasL35_M) object detection
           - model: efficientdet_lite0
             description: EfficientDet-Lite0 object detection
+          - model: efficientdet_lite1
+            description: EfficientDet-Lite1 object detection
 
     steps:
       - name: Checkout
