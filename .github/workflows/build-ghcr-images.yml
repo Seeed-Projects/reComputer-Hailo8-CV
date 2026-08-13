@@ -27,6 +27,7 @@ on:
           - efficientdet_lite1
           - efficientdet_lite2
           - nanodet_repvgg
+          - nanodet_repvgg_a12
 
 permissions:
   contents: read
@@ -67,6 +68,8 @@ jobs:
             description: EfficientDet-Lite2 object detection
           - model: nanodet_repvgg
             description: NanoDet-RepVGG object detection
+          - model: nanodet_repvgg_a12
+            description: NanoDet-RepVGG-a12 object detection
 
     steps:
       - name: Checkout
