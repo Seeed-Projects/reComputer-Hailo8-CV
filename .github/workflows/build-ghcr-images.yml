@@ -30,6 +30,7 @@ on:
           - nanodet_repvgg_a12
           - nanodet_repvgg_a1_640
           - ssd_mobilenet_v1
+          - ssd_mobilenet_v2
 
 permissions:
   contents: read
@@ -76,6 +77,8 @@ jobs:
             description: NanoDet-RepVGG-a1-640 object detection
           - model: ssd_mobilenet_v1
             description: SSD MobileNet V1 object detection
+          - model: ssd_mobilenet_v2
+            description: SSD MobileNet V2 object detection
 
     steps:
       - name: Checkout
