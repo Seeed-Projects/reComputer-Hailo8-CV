@@ -33,6 +33,7 @@ on:
           - ssd_mobilenet_v2
           - tiny_yolov3
           - tiny_yolov4
+          - vit_pose_small
 
 permissions:
   contents: read
@@ -85,6 +86,8 @@ jobs:
             description: Tiny-YOLOv3 object detection
           - model: tiny_yolov4
             description: Tiny-YOLOv4 object detection
+          - model: vit_pose_small
+            description: ViTPose-Small single-person pose estimation
 
     steps:
       - name: Checkout
