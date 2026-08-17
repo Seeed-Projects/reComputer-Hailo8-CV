@@ -34,6 +34,7 @@ on:
           - tiny_yolov3
           - tiny_yolov4
           - vit_pose_small
+          - vit_pose_small_bn
 
 permissions:
   contents: read
@@ -88,6 +89,8 @@ jobs:
             description: Tiny-YOLOv4 object detection
           - model: vit_pose_small
             description: ViTPose-Small single-person pose estimation
+          - model: vit_pose_small_bn
+            description: ViTPose-Small-BN single-person pose estimation
 
     steps:
       - name: Checkout
