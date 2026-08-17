@@ -32,6 +32,7 @@ on:
           - ssd_mobilenet_v1
           - ssd_mobilenet_v2
           - tiny_yolov3
+          - tiny_yolov4
 
 permissions:
   contents: read
@@ -82,6 +83,8 @@ jobs:
             description: SSD MobileNet V2 object detection
           - model: tiny_yolov3
             description: Tiny-YOLOv3 object detection
+          - model: tiny_yolov4
+            description: Tiny-YOLOv4 object detection
 
     steps:
       - name: Checkout
