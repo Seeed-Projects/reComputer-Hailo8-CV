@@ -36,6 +36,7 @@ on:
           - vit_pose_small
           - vit_pose_small_bn
           - depth_anything_v2_vits
+          - depth_anything_vits
 
 permissions:
   contents: read
@@ -94,6 +95,8 @@ jobs:
             description: ViTPose-Small-BN single-person pose estimation
           - model: depth_anything_v2_vits
             description: Depth-Anything-V2-ViTS depth estimation
+          - model: depth_anything_vits
+            description: Depth-Anything-ViTS depth estimation
 
     steps:
       - name: Checkout
