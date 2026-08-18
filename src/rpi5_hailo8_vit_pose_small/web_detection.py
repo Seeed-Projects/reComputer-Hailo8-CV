@@ -343,7 +343,13 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     else:
         output = hailo_output
 
-    arr = np.asarray(output)
+    try:
+        arr = np.asarray(output)
+    except (ValueError, TypeError) as e:
+        if not _DET_LOGGED:
+            print(f"[ViTPose] np.asarray failed: {e}", flush=True)
+            _DET_LOGGED = True
+        return None
     if not _DET_LOGGED:
         print(f"[ViTPose] raw output shape={arr.shape}, dtype={arr.dtype}", flush=True)
         _DET_LOGGED = True
@@ -433,14 +439,17 @@ def inference_loop(cap, model, co_helper, is_video_file, target_fps):
             outputs = model.run(processed_img)
             inf_time = time.time() - start_time
             if outputs is not None:
-                obj, _ = det_config.get()
-                kpts = post_process_hailo(outputs, obj, 0, IMG_SIZE[1], IMG_SIZE[0])
-                if kpts is not None:
-                    real_kpts = unletterbox_keypoints(kpts, lb_info)
-                    h, w = frame.shape[:2]
-                    real_kpts[:, 0] = np.clip(real_kpts[:, 0], 0, w - 1)
-                    real_kpts[:, 1] = np.clip(real_kpts[:, 1], 0, h - 1)
-                    draw(frame, real_kpts, obj)
+                try:
+                    obj, _ = det_config.get()
+                    kpts = post_process_hailo(outputs, obj, 0, IMG_SIZE[1], IMG_SIZE[0])
+                    if kpts is not None:
+                        real_kpts = unletterbox_keypoints(kpts, lb_info)
+                        h, w = frame.shape[:2]
+                        real_kpts[:, 0] = np.clip(real_kpts[:, 0], 0, w - 1)
+                        real_kpts[:, 1] = np.clip(real_kpts[:, 1], 0, h - 1)
+                        draw(frame, real_kpts, obj)
+                except Exception as e:
+                    print(f"[ViTPose] post-process error: {e}", flush=True)
             inf_fps = 1.0 / inf_time if inf_time > 0 else 0
             fps_counter = 0.9 * fps_counter + 0.1 * inf_fps if fps_counter > 0 else inf_fps
             cv2.putText(frame, f'Hailo FPS: {fps_counter:.1f}', (20, 40),
