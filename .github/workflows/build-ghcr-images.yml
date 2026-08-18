@@ -35,6 +35,7 @@ on:
           - tiny_yolov4
           - vit_pose_small
           - vit_pose_small_bn
+          - depth_anything_v2_vits
 
 permissions:
   contents: read
@@ -91,6 +92,8 @@ jobs:
             description: ViTPose-Small single-person pose estimation
           - model: vit_pose_small_bn
             description: ViTPose-Small-BN single-person pose estimation
+          - model: depth_anything_v2_vits
+            description: Depth-Anything-V2-ViTS depth estimation
 
     steps:
       - name: Checkout
