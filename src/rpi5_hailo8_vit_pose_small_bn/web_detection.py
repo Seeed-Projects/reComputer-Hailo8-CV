@@ -219,11 +219,11 @@ class FrameBuffer:
     def push_annotated(self, f):
         with self.cond: self.raw = f; self.annotated = f; self.av += 1; self.cond.notify_all()
     def wait_annotated(self, v, timeout=1.0):
-        with self.cond: self.cond.wait_for(lambda: self.av > v, timeout=t); return self.annotated, self.av
+        with self.cond: self.cond.wait_for(lambda: self.av > v, timeout=timeout); return self.annotated, self.av
     def push_jpeg(self, j):
         with self.cond: self.jpeg = j; self.jv += 1; self.cond.notify_all()
     def wait_jpeg(self, v, timeout=1.0):
-        with self.cond: self.cond.wait_for(lambda: self.jv > v, timeout=t); return self.jpeg, self.jv
+        with self.cond: self.cond.wait_for(lambda: self.jv > v, timeout=timeout); return self.jpeg, self.jv
     def get_raw_frame(self):
         with self.cond: return self.raw.copy() if self.raw is not None else None
 
