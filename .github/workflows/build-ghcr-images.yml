@@ -37,6 +37,7 @@ on:
           - vit_pose_small_bn
           - depth_anything_v2_vits
           - depth_anything_vits
+          - yolox_tiny
 
 permissions:
   contents: read
@@ -97,6 +98,8 @@ jobs:
             description: Depth-Anything-V2-ViTS depth estimation
           - model: depth_anything_vits
             description: Depth-Anything-ViTS depth estimation
+          - model: yolox_tiny
+            description: YOLOX-Tiny object detection
 
     steps:
       - name: Checkout
