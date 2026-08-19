@@ -39,6 +39,7 @@ on:
           - depth_anything_vits
           - yolox_tiny
           - yolox_s_leaky
+          - yolox_l_leaky
 
 permissions:
   contents: read
@@ -103,6 +104,8 @@ jobs:
             description: YOLOX-Tiny object detection
           - model: yolox_s_leaky
             description: YOLOX-S-Leaky object detection
+          - model: yolox_l_leaky
+            description: YOLOX-L-Leaky object detection
 
     steps:
       - name: Checkout
