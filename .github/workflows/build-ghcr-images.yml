@@ -38,6 +38,7 @@ on:
           - depth_anything_v2_vits
           - depth_anything_vits
           - yolox_tiny
+          - yolox_s_leaky
 
 permissions:
   contents: read
@@ -100,6 +101,8 @@ jobs:
             description: Depth-Anything-ViTS depth estimation
           - model: yolox_tiny
             description: YOLOX-Tiny object detection
+          - model: yolox_s_leaky
+            description: YOLOX-S-Leaky object detection
 
     steps:
       - name: Checkout
