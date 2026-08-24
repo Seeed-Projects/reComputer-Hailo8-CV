@@ -1088,7 +1088,8 @@ def draw(image, boxes, scores, classes, masks=None, mask_thresh=0.5, mask_alpha=
                  + np.array(color, dtype=np.float32) * mask_alpha)
             ).astype(np.uint8)
         cv2.addWeighted(overlay, 0.65, image, 0.35, 0, image)
-        image[binary] = overlay[binary]
+        combined_mask = np.any(binary, axis=0)  # (h, w)
+        image[combined_mask] = overlay[combined_mask]
     for box, score, cl in zip(boxes, scores, classes):
         cl = int(cl)
         if cl < 0 or cl >= len(CLASSES) or CLASSES[cl] == "N/A":
