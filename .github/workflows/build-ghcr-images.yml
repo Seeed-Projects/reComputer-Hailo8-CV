@@ -40,6 +40,10 @@ on:
           - yolox_tiny
           - yolox_s_leaky
           - yolox_l_leaky
+          - yolact_regnetx_800mf
+          - yolact_regnetx_1_6gf
+          - yolact_regnetx_800mf
+          - yolact_regnetx_1_6gf
 
 permissions:
   contents: read
@@ -106,6 +110,10 @@ jobs:
             description: YOLOX-S-Leaky object detection
           - model: yolox_l_leaky
             description: YOLOX-L-Leaky object detection
+          - model: yolact_regnetx_800mf
+            description: YOLACT-RegNetX-800MF instance segmentation
+          - model: yolact_regnetx_1_6gf
+            description: YOLACT-RegNetX-1.6GF instance segmentation
 
     steps:
       - name: Checkout
