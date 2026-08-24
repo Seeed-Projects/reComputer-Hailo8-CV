@@ -42,8 +42,6 @@ on:
           - yolox_l_leaky
           - yolact_regnetx_800mf
           - yolact_regnetx_1_6gf
-          - yolact_regnetx_800mf
-          - yolact_regnetx_1_6gf
 
 permissions:
   contents: read
