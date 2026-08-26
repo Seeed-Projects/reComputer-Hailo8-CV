@@ -31,11 +31,13 @@ requiring full CPU-side YOLOv3 decode.
 
 ---
 
-## Included models (20)
+## Included models (22)
 
 | Model | Task | Parameters | Module | Container image |
 |---|---|---:|---|---|
 | CenterPose RegNetX-800MF | Pose (17 COCO keypoints) | 12.31M | `src/rpi5_hailo8_centerpose_regnetx_800mf/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/centerpose_regnetx_800mf:latest` |
+| PaddleOCR v5 Mobile Detection | Text detection | 1.2M | `src/rpi5_hailo8_paddle_ocr_v5_mobile_detection/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/paddle_ocr_v5_mobile_detection:latest` |
+| PaddleOCR v5 Mobile Recognition | Text recognition | — | `src/rpi5_hailo8_paddle_ocr_v5_mobile_recognition/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/paddle_ocr_v5_mobile_recognition:latest` |
 | STDC1 | Semantic segmentation (Cityscapes 19) | 8.27M | `src/rpi5_hailo8_stdc1/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/stdc1:latest` |
 | CenterNet (resnet_v1_18) | Object detection (COCO 80) | 14.22M | `src/rpi5_hailo8_centernet_resnet_v1_18_postprocess/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/centernet_resnet_v1_18_postprocess:latest` |
 | CenterNet (resnet_v1_50) | Object detection (COCO 80) | 30.07M | `src/rpi5_hailo8_centernet_resnet_v1_50_postprocess/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/centernet_resnet_v1_50_postprocess:latest` |
@@ -64,6 +66,8 @@ All HEFs come from [Hailo Model Zoo v2.19.0](https://github.com/hailo-ai/hailo_m
 | CPU YOLOv3 decode | Tiny-YOLOv3, Tiny-YOLOv4 | No | Raw heads (HxWx255) |
 | CPU DFL decode | DAMO-YOLO | No | Raw nanodet_split heads |
 | CPU 6-head decode | CenterPose | No | Raw CenterNet heads + keypoints |
+| DB text detection | PaddleOCR v5 Mobile Detection | No | Text probability map |
+| CTC text recognition | PaddleOCR v5 Mobile Recognition | No | CTC logits |
 
 ---
 
@@ -128,6 +132,8 @@ reComputer-Hailo8-CV/
 ├── .github/workflows/build-ghcr-images.yml   # Per-model GHCR build (only changed models rebuild)
 ├── docker/hailo8/                             # One Dockerfile per model
 │   ├── centerpose_regnetx_800mf.dockerfile
+│   ├── paddle_ocr_v5_mobile_detection.dockerfile
+│   ├── paddle_ocr_v5_mobile_recognition.dockerfile
 │   ├── stdc1.dockerfile
 │   ├── centernet_resnet_v1_18_postprocess.dockerfile
 │   ├── centernet_resnet_v1_50_postprocess.dockerfile
@@ -146,6 +152,8 @@ reComputer-Hailo8-CV/
 │   └── tiny_yolov4.dockerfile
 └── src/
     ├── rpi5_hailo8_centerpose_regnetx_800mf/
+    ├── rpi5_hailo8_paddle_ocr_v5_mobile_detection/
+    ├── rpi5_hailo8_paddle_ocr_v5_mobile_recognition/
     ├── rpi5_hailo8_stdc1/
     ├── rpi5_hailo8_centernet_resnet_v1_18_postprocess/
     ├── rpi5_hailo8_centernet_resnet_v1_50_postprocess/
