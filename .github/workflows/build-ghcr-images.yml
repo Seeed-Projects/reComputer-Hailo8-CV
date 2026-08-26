@@ -42,6 +42,7 @@ on:
           - yolox_l_leaky
           - yolact_regnetx_800mf
           - yolact_regnetx_1_6gf
+          - retinaface_mobilenet_v1
 
 permissions:
   contents: read
@@ -112,6 +113,8 @@ jobs:
             description: YOLACT-RegNetX-800MF instance segmentation
           - model: yolact_regnetx_1_6gf
             description: YOLACT-RegNetX-1.6GF instance segmentation
+          - model: retinaface_mobilenet_v1
+            description: RetinaFace MobileNet-v1 face detection
 
     steps:
       - name: Checkout
