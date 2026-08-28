@@ -33,6 +33,8 @@ on:
           - ssd_mobilenet_v2
           - tiny_yolov3
           - tiny_yolov4
+          - tiny_yolov4_license_plates
+          - lprnet
           - vit_pose_small
           - vit_pose_small_bn
           - depth_anything_v2_vits
@@ -97,6 +99,10 @@ jobs:
             description: Tiny-YOLOv3 object detection
           - model: tiny_yolov4
             description: Tiny-YOLOv4 object detection
+          - model: tiny_yolov4_license_plates
+            description: Tiny-YOLOv4 license plate detection
+          - model: lprnet
+            description: Tiny-YOLOv4 plus LPRNet license plate pipeline
           - model: vit_pose_small
             description: ViTPose-Small single-person pose estimation
           - model: vit_pose_small_bn

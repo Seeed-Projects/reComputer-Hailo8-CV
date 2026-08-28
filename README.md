@@ -31,7 +31,7 @@ requiring full CPU-side YOLOv3 decode.
 
 ---
 
-## Included models (22)
+## Included models (24)
 
 | Model | Task | Parameters | Module | Container image |
 |---|---|---:|---|---|
@@ -54,8 +54,10 @@ requiring full CPU-side YOLOv3 decode.
 | SSD MobileNet V2 | Object detection (COCO 80) | 4.46M | `src/rpi5_hailo8_ssd_mobilenet_v2/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/ssd_mobilenet_v2:latest` |
 | Tiny-YOLOv3 | Object detection (COCO 80) | 8.85M | `src/rpi5_hailo8_tiny_yolov3/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov3:latest` |
 | Tiny-YOLOv4 | Object detection (COCO 80) | 6.05M | `src/rpi5_hailo8_tiny_yolov4/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4:latest` |
+| Tiny-YOLOv4 License Plates | License plate detection | 5.87M | `src/rpi5_hailo8_tiny_yolov4_license_plates/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4_license_plates:latest` |
+| LPRNet | License plate detection + numeric OCR pipeline | 7.14M OCR | `src/rpi5_hailo8_lprnet/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/lprnet:latest` |
 
-All HEFs come from [Hailo Model Zoo v2.19.0](https://github.com/hailo-ai/hailo_model_zoo) (Hailo-8 target).
+HEFs come from the official [Hailo Model Zoo](https://github.com/hailo-ai/hailo_model_zoo) Hailo-8 builds. Most use v2.19.0; the LPR models use the available v2.16/v2.17 Hailo-8 artifacts documented in their module READMEs.
 
 ### Post-processing architecture
 
@@ -64,6 +66,7 @@ All HEFs come from [Hailo Model Zoo v2.19.0](https://github.com/hailo-ai/hailo_m
 | On-chip NMS (HPP) | EfficientDet, NanoDet, SSD | Yes | Post-NMS tensor (Cx5xD) |
 | On-chip max_finder | CenterNet | Partial | Sparse heatmap (128x128xC) |
 | CPU YOLOv3 decode | Tiny-YOLOv3, Tiny-YOLOv4 | No | Raw heads (HxWx255) |
+| License plate pipeline | Tiny-YOLOv4 License Plates, LPRNet | No | Raw HxWx18 detector heads + 5x19x11 OCR logits |
 | CPU DFL decode | DAMO-YOLO | No | Raw nanodet_split heads |
 | CPU 6-head decode | CenterPose | No | Raw CenterNet heads + keypoints |
 | DB text detection | PaddleOCR v5 Mobile Detection | No | Text probability map |
@@ -149,7 +152,9 @@ reComputer-Hailo8-CV/
 │   ├── ssd_mobilenet_v1.dockerfile
 │   ├── ssd_mobilenet_v2.dockerfile
 │   ├── tiny_yolov3.dockerfile
-│   └── tiny_yolov4.dockerfile
+│   ├── tiny_yolov4.dockerfile
+│   ├── tiny_yolov4_license_plates.dockerfile
+│   └── lprnet.dockerfile
 └── src/
     ├── rpi5_hailo8_centerpose_regnetx_800mf/
     ├── rpi5_hailo8_paddle_ocr_v5_mobile_detection/
@@ -169,7 +174,9 @@ reComputer-Hailo8-CV/
     ├── rpi5_hailo8_ssd_mobilenet_v1/
     ├── rpi5_hailo8_ssd_mobilenet_v2/
     ├── rpi5_hailo8_tiny_yolov3/
-    └── rpi5_hailo8_tiny_yolov4/
+    ├── rpi5_hailo8_tiny_yolov4/
+    ├── rpi5_hailo8_tiny_yolov4_license_plates/
+    └── rpi5_hailo8_lprnet/
 
 # Per-module layout (same skeleton for all):
 src/rpi5_hailo8_<slug>/
@@ -303,5 +310,7 @@ Full checklist: `docs/CM5_HAILO8_MODEL_DEVELOPMENT_SOP_zh.md`
 - [SSD MobileNet V2](src/rpi5_hailo8_ssd_mobilenet_v2/README.md) — [中文](src/rpi5_hailo8_ssd_mobilenet_v2/README_zh.md)
 - [Tiny-YOLOv3](src/rpi5_hailo8_tiny_yolov3/README.md) — [中文](src/rpi5_hailo8_tiny_yolov3/README_zh.md)
 - [Tiny-YOLOv4](src/rpi5_hailo8_tiny_yolov4/README.md) — [中文](src/rpi5_hailo8_tiny_yolov4/README_zh.md)
+- [Tiny-YOLOv4 License Plates](src/rpi5_hailo8_tiny_yolov4_license_plates/README.md) — [中文](src/rpi5_hailo8_tiny_yolov4_license_plates/README_zh.md)
+- [LPRNet pipeline](src/rpi5_hailo8_lprnet/README.md) — [中文](src/rpi5_hailo8_lprnet/README_zh.md)
 
 Validation logs: each module ships a `TEST_REPORT.md`.

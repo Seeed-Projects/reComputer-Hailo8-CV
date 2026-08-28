@@ -26,7 +26,7 @@ NanoDet、SSD、Tiny-YOLO）、**语义分割**（STDC1）、**姿态估计**（
 
 ---
 
-## 已收录模型（20 个）
+## 已收录模型（22 个）
 
 | 模型 | 任务 | 参数量 | 模块 | 容器镜像 |
 |---|---|---:|---|---|
@@ -47,8 +47,10 @@ NanoDet、SSD、Tiny-YOLO）、**语义分割**（STDC1）、**姿态估计**（
 | SSD MobileNet V2 | 目标检测（COCO 80） | 4.46M | `src/rpi5_hailo8_ssd_mobilenet_v2/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/ssd_mobilenet_v2:latest` |
 | Tiny-YOLOv3 | 目标检测（COCO 80） | 8.85M | `src/rpi5_hailo8_tiny_yolov3/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov3:latest` |
 | Tiny-YOLOv4 | 目标检测（COCO 80） | 6.05M | `src/rpi5_hailo8_tiny_yolov4/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4:latest` |
+| Tiny-YOLOv4 License Plates | 车牌检测 | 5.87M | `src/rpi5_hailo8_tiny_yolov4_license_plates/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4_license_plates:latest` |
+| LPRNet | 车牌检测 + 数字 OCR 流水线 | 7.14M OCR | `src/rpi5_hailo8_lprnet/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/lprnet:latest` |
 
-所有 HEF 来自 [Hailo Model Zoo v2.19.0](https://github.com/hailo-ai/hailo_model_zoo)（Hailo-8 编译目标）。
+HEF 均来自官方 [Hailo Model Zoo](https://github.com/hailo-ai/hailo_model_zoo) 的 Hailo-8 构建。多数模型使用 v2.19.0；LPR 模型使用当前可用的 v2.16/v2.17 Hailo-8 产物，详见模块 README。
 
 ### 后处理架构
 
@@ -57,6 +59,7 @@ NanoDet、SSD、Tiny-YOLO）、**语义分割**（STDC1）、**姿态估计**（
 | 片上 NMS（HPP） | EfficientDet、NanoDet、SSD | 是 | 后 NMS 张量（Cx5xD） |
 | 片上 max_finder | CenterNet | 部分 | 稀疏热图（128x128xC） |
 | CPU YOLOv3 解码 | Tiny-YOLOv3、Tiny-YOLOv4 | 否 | Raw head（HxWx255） |
+| 车牌流水线 | Tiny-YOLOv4 License Plates、LPRNet | 否 | HxWx18 检测 head + 5x19x11 OCR logits |
 | CPU DFL 解码 | DAMO-YOLO | 否 | Raw nanodet_split head |
 | CPU 6-head 解码 | CenterPose | 否 | Raw CenterNet head + 关键点 |
 
@@ -163,5 +166,7 @@ curl -X POST http://<设备_IP>:8000/api/models/damoyolo_tinynas_l25_s/predict -
 - [SSD MobileNet V2](src/rpi5_hailo8_ssd_mobilenet_v2/README_zh.md) — [English](src/rpi5_hailo8_ssd_mobilenet_v2/README.md)
 - [Tiny-YOLOv3](src/rpi5_hailo8_tiny_yolov3/README_zh.md) — [English](src/rpi5_hailo8_tiny_yolov3/README.md)
 - [Tiny-YOLOv4](src/rpi5_hailo8_tiny_yolov4/README_zh.md) — [English](src/rpi5_hailo8_tiny_yolov4/README.md)
+- [Tiny-YOLOv4 License Plates](src/rpi5_hailo8_tiny_yolov4_license_plates/README_zh.md) — [English](src/rpi5_hailo8_tiny_yolov4_license_plates/README.md)
+- [LPRNet 流水线](src/rpi5_hailo8_lprnet/README_zh.md) — [English](src/rpi5_hailo8_lprnet/README.md)
 
 每个模块带 `TEST_REPORT.md` 验证记录。
