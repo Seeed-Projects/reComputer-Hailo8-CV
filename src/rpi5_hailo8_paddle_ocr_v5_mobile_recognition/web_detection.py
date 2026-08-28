@@ -136,7 +136,7 @@ class VideoAnalyzer:
                 if self.model:
                     try:
                         result = predict_text(frame)
-                        draw(frame, result)
+                        frame = draw(frame, result)
                     except Exception as e:
                         print(f"[VideoAnalyzer] frame error: {e}", flush=True)
                 if kind == 'ffmpeg':
@@ -258,17 +258,20 @@ def predict_text(frame):
         output = next(iter(output.values()))
     elif isinstance(output, (list, tuple)):
         output = output[0]
-    return decode(output)
+    text, confidence = decode(output)  # decode returns a (text, conf) tuple
+    return {"text": text, "confidence": confidence}
 
 
 def draw(image, result):
-    """Draw the recognized text on a white strip at the bottom of the frame."""
+    """Draw the recognized text on a white strip below the frame. Appends a
+    52px border, so callers should use the returned image (the input frame
+    keeps its original shape — copyMakeBorder cannot write in place)."""
     text = (result or {}).get("text") or "<unreadable>"
     conf = (result or {}).get("confidence") or 0.0
     output = cv2.copyMakeBorder(image, 0, 52, 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255))
-    image[:] = output
-    cv2.putText(image, f'{text}  ({conf:.2f})', (12, image.shape[0] - 18),
+    cv2.putText(output, f'{text}  ({conf:.2f})', (12, output.shape[0] - 18),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (35, 90, 35), 2, cv2.LINE_AA)
+    return output
 
 
 @app.post("/api/models/paddle_ocr_v5_mobile_recognition/predict")
@@ -558,7 +561,7 @@ def inference_loop(cap, model, is_video_file, target_fps):
             start_time = time.time()
             try:
                 result = predict_text(frame)
-                draw(frame, result)
+                frame = draw(frame, result)
             except Exception as e:
                 print(f"[PaddleOCR-rec] inference error: {e}", flush=True)
             inference_time = time.time() - start_time
