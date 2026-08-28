@@ -16,7 +16,10 @@ def preprocess(image, width=320, height=48, pad_value=128):
 
 def decode(output):
     logits = np.asarray(output)
-    logits = logits.squeeze(axis=0) if logits.ndim == 3 and logits.shape[0] == 1 else logits
+    # HailoRT may wrap the (T, C) logits in up to two batch-ish dims:
+    # (1, T, C) or (1, 1, T, C). Strip leading size-1 axes until 2-D.
+    while logits.ndim > 2 and logits.shape[0] == 1:
+        logits = logits[0]
     if logits.ndim != 2: raise ValueError(f"Unexpected recognizer output shape: {np.asarray(output).shape}")
     indices, confidence = logits.argmax(axis=1), logits.max(axis=1)
     text, scores, previous = [], [], -1
