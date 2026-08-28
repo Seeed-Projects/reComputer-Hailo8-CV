@@ -585,7 +585,17 @@ def encode_loop(preview_w, preview_h, jpeg_quality):
             continue
         h, w = frame.shape[:2]
         if preview_w > 0 and preview_h > 0 and (w, h) != (preview_w, preview_h):
-            preview = cv2.resize(frame, (preview_w, preview_h), interpolation=cv2.INTER_AREA)
+            # Letterbox instead of a blind resize: the demo line video is
+            # 1020x74, and stretching it to 1280x720 distorts the text ~10x
+            # vertically. Keep the aspect ratio and center the content on a
+            # black canvas; the recognizer input stays 320x48 regardless.
+            scale = min(preview_w / w, preview_h / h)
+            new_w, new_h = max(1, int(round(w * scale))), max(1, int(round(h * scale)))
+            resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            preview = np.zeros((preview_h, preview_w, 3), dtype=np.uint8)
+            x0 = (preview_w - new_w) // 2
+            y0 = (preview_h - new_h) // 2
+            preview[y0:y0 + new_h, x0:x0 + new_w] = resized
         else:
             preview = frame
         ok, buf = cv2.imencode('.jpg', preview, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
