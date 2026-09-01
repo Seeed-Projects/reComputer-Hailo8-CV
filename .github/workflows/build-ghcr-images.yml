@@ -46,6 +46,7 @@ on:
           - yolact_regnetx_1_6gf
           - retinaface_mobilenet_v1
           - yolo26m_seg
+          - yolo26x_seg
           - paddle_ocr_v5_mobile_detection
           - paddle_ocr_v5_mobile_recognition
 
@@ -126,6 +127,8 @@ jobs:
             description: RetinaFace MobileNet-v1 face detection
           - model: yolo26m_seg
             description: YOLO26m-seg instance segmentation
+          - model: yolo26x_seg
+            description: YOLO26x-seg instance segmentation
           - model: paddle_ocr_v5_mobile_detection
             description: PaddleOCR v5 Mobile text detection
           - model: paddle_ocr_v5_mobile_recognition
