@@ -27,7 +27,7 @@ except ImportError as e:
 # Demo defaults. Model Zoo v2.17 evaluates at score_threshold=0.1 and the
 # official TAPPAS LPR demo uses 0.3. This HEF exposes raw YOLO heads, so decode
 # and NMS run on the CPU.
-OBJ_THRESH = 0.30
+OBJ_THRESH = 0.10
 NMS_THRESH = 0.30
 IMG_SIZE = (416, 416)  # (width, height) — overridden at runtime from the .hef
 
@@ -413,7 +413,10 @@ def _decode_yolov3_head(head, anchors, stride, obj_thresh):
     Returns: (boxes_xyxy, classes, scores) or None if no detections.
     """
     H, W, _ = head.shape
-    # Reshape (H, W, 18) → (H, W, 3, 6)
+    # Channel layout is anchor-major (per the Model Zoo yolo decode:
+    # transpose to (N, C, H*W) then reshape (BS, num_anchors*num_pred, H*W)):
+    # (H, W, 18) = [a0: xy wh obj cls | a1: ... | a2: ...].
+    # Reshape to (H, W, 3, 6) grouping each anchor's 6 predictions.
     head = head.reshape(H, W, 3, 5 + NUM_CLASSES)
 
     raw_xy = head[..., 0:2]    # (H, W, 3, 2)
@@ -548,12 +551,15 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     return boxes[keep], classes[keep], scores[keep]
 
 def unletterbox_boxes(boxes, lb_info):
+    """Map xyxy boxes from the 416x416 ar-preserving input (content at the
+    origin, bottom/right pad) back to the original frame: pure division by
+    the resize scale — padding is not centered, so no offset to subtract."""
     if boxes is None or len(boxes) == 0:
         return boxes
-    ratio, dw, dh = lb_info
+    scale, _pad_h, _pad_w = lb_info
     out = boxes.copy().astype(np.float32)
-    out[:, [0, 2]] = (out[:, [0, 2]] - dw) / ratio
-    out[:, [1, 3]] = (out[:, [1, 3]] - dh) / ratio
+    out[:, [0, 2]] /= scale
+    out[:, [1, 3]] /= scale
     return out
 
 def draw(image, boxes, scores, classes):
@@ -566,19 +572,23 @@ def draw(image, boxes, scores, classes):
                     (x1, max(20, y1 - 6)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
 def preprocess_frame(frame, co_helper):
-    """Letterbox + BGR to RGB. Returns (img, lb_info).
+    """Aspect-preserving resize + pad 0, BGR passthrough. Returns (img, lb_info).
 
-    normalize_in_net with std=255 (÷255, no-op mean); padding_color=114 (gray,
-    YOLO convention). The app feeds raw uint8 RGB pixels after letterboxing —
-    no manual normalization.
+    Official pipeline (network YAML): meta_arch=mobilenet_ssd_ar, i.e.
+    _ar_preserving_resize_and_crop with padding_color=0. The alls script has
+    NO input_conversion(bgr_to_rgb) and normalization(mean=0, std=255), so
+    the HEF expects raw uint8 BGR frames — no RGB swap, no pad-114
+    letterbox. Earlier revisions fed RGB with gray padding, which produced
+    zero detections on hardware.
     """
-    if getattr(co_helper, "letter_box_info_list", None) is not None:
-        co_helper.letter_box_info_list.clear()
-    img, ratio, (dw, dh) = co_helper.letter_box(
-        im=frame.copy(), new_shape=(IMG_SIZE[1], IMG_SIZE[0]),
-        pad_color=(114, 114, 114), info_need=True)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    return img, (ratio, dw, dh)
+    ih, iw = IMG_SIZE[1], IMG_SIZE[0]
+    fh, fw = frame.shape[:2]
+    scale = min(iw / fw, ih / fh)
+    new_w, new_h = int(round(fw * scale)), int(round(fh * scale))
+    resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+    img = np.zeros((ih, iw, 3), dtype=np.uint8)
+    img[:new_h, :new_w] = resized
+    return img, (scale, ih - new_h, iw - new_w)
 
 def inference_loop(cap, model, co_helper, is_video_file, target_fps):
     fps_counter = 0
