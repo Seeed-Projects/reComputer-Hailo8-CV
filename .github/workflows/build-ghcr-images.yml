@@ -37,6 +37,7 @@ on:
           - lprnet
           - vit_pose_small
           - vit_pose_small_bn
+          - mspn_regnetx_800mf
           - depth_anything_v2_vits
           - depth_anything_vits
           - yolox_tiny
@@ -109,6 +110,8 @@ jobs:
             description: ViTPose-Small single-person pose estimation
           - model: vit_pose_small_bn
             description: ViTPose-Small-BN single-person pose estimation
+          - model: mspn_regnetx_800mf
+            description: MSPN RegNetX-800MF single-person pose estimation
           - model: depth_anything_v2_vits
             description: Depth-Anything-V2-ViTS depth estimation
           - model: depth_anything_vits
