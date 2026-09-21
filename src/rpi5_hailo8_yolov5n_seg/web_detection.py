@@ -227,7 +227,8 @@ class VideoAnalyzer:
                         obj, nms = det_config.get()
                         boxes, scores, class_ids, masks = post_process_hailo(outputs, obj, nms, IMG_SIZE[1], IMG_SIZE[0])
                         if boxes is not None:
-                            draw_boxes(frame, boxes, scores, class_ids, masks, lb_info)
+                            real_boxes = unletterbox_boxes(boxes, lb_info)
+                            draw_boxes(frame, real_boxes, scores, class_ids, masks, lb_info)
                 if kind == 'ffmpeg':
                     out.stdin.write(frame.tobytes())
                 else:
@@ -1017,6 +1018,32 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     masks = _y5_process_mask(proto, dets[:, 6:], boxes, (input_h, input_w))
     return boxes, scores, class_ids, masks
 
+def _mask_color(cls_id):
+    palette = [
+        (54, 67, 244), (99, 30, 233), (176, 39, 156), (183, 58, 103),
+        (181, 81, 63), (243, 150, 33), (244, 169, 3), (212, 188, 0),
+        (136, 150, 0), (80, 175, 76), (74, 195, 139), (57, 220, 205),
+        (59, 235, 255), (7, 193, 255), (0, 152, 255), (34, 87, 255),
+        (72, 85, 121), (158, 158, 158), (139, 125, 96),
+    ]
+    return palette[int(cls_id) % len(palette)]
+
+
+COCO_CLASSES = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"]
+
+
+def unletterbox_boxes(boxes, lb_info):
+    """Map xyxy boxes from the letterboxed input back to the original frame.
+    lb_info = (ratio, dw, dh) captured by preprocess_frame."""
+    if boxes is None or len(boxes) == 0:
+        return boxes
+    ratio, dw, dh = lb_info
+    out = boxes.copy().astype(np.float32)
+    out[:, [0, 2]] = (out[:, [0, 2]] - dw) / ratio
+    out[:, [1, 3]] = (out[:, [1, 3]] - dh) / ratio
+    return out
+
+
 def unletterbox_masks(masks, lb_info, frame_shape):
     """Map (N, ih, iw) masks back to the original frame: crop the letterbox
     padding first, then resize to the frame. lb_info = (ratio, dw, dh)."""
@@ -1056,7 +1083,7 @@ def draw_boxes(image, boxes, scores, class_ids, masks=None, lb_info=None,
                 (overlay[binary[i]].astype(np.float32) * (1 - mask_alpha)
                  + np.array(color, dtype=np.float32) * mask_alpha)
             ).astype(np.uint8)
-        image[binary] = overlay[binary]
+            image[binary[i]] = overlay[binary[i]]
     for i, box in enumerate(boxes):
         x1, y1, x2, y2 = box.astype(int)
         cl = int(class_ids[i]) % len(COCO_CLASSES)
@@ -1121,7 +1148,8 @@ def inference_loop(cap, model, co_helper, is_video_file, target_fps):
                 obj, nms = det_config.get()
                 boxes, scores, class_ids, masks = post_process_hailo(outputs, obj, nms, IMG_SIZE[1], IMG_SIZE[0])
                 if boxes is not None:
-                    draw_boxes(frame, boxes, scores, class_ids, masks, lb_info)
+                    real_boxes = unletterbox_boxes(boxes, lb_info)
+                    draw_boxes(frame, real_boxes, scores, class_ids, masks, lb_info)
 
             inf_fps = 1.0 / inference_time if inference_time > 0 else 0
             fps_counter = 0.9 * fps_counter + 0.1 * inf_fps if fps_counter > 0 else inf_fps
