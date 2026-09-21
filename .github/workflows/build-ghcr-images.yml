@@ -48,6 +48,9 @@ on:
           - retinaface_mobilenet_v1
           - yolo26m_seg
           - yolo26x_seg
+          - yolov5n_seg
+          - yolov5s_seg
+          - yolov5m_seg
           - paddle_ocr_v5_mobile_detection
           - paddle_ocr_v5_mobile_recognition
 
@@ -132,6 +135,12 @@ jobs:
             description: YOLO26m-seg instance segmentation
           - model: yolo26x_seg
             description: YOLO26x-seg instance segmentation
+          - model: yolov5n_seg
+            description: YOLOv5n-seg instance segmentation
+          - model: yolov5s_seg
+            description: YOLOv5s-seg instance segmentation
+          - model: yolov5m_seg
+            description: YOLOv5m-seg instance segmentation
           - model: paddle_ocr_v5_mobile_detection
             description: PaddleOCR v5 Mobile text detection
           - model: paddle_ocr_v5_mobile_recognition
