@@ -53,6 +53,7 @@ on:
           - yolov5m_seg
           - paddle_ocr_v5_mobile_detection
           - paddle_ocr_v5_mobile_recognition
+          - arcface_mobilefacenet
 
 permissions:
   contents: read
@@ -73,6 +74,8 @@ jobs:
         include:
           - model: centerpose_regnetx_800mf
             description: CenterPose RegNetX-800MF pose estimation
+          - model: arcface_mobilefacenet
+            description: ArcFace MobileFaceNet face recognition
           - model: stdc1
             description: STDC1 semantic segmentation
           - model: centernet_resnet_v1_18_postprocess
