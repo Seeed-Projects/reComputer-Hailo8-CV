@@ -799,67 +799,92 @@ def _parse_compact_nms_by_class(buf):
     return classes
 
 
-def _looks_like_per_class_list(endnodes):
-    """True when the endnodes *are* the per-class list of an NMS-by-score
-    output: at most one entry per class, each empty or (N, 5) rows."""
-    if not endnodes or len(endnodes) > V6_CLASSES:
+def _first_output(hailo_output):
+    """Unwrap the HailoRT payload: dict -> its single value, list -> first item."""
+    if isinstance(hailo_output, dict):
+        return next(iter(hailo_output.values())) if hailo_output else None
+    if isinstance(hailo_output, (list, tuple)) and hailo_output:
+        return hailo_output[0]
+    return hailo_output
+
+
+def _is_ragged(output):
+    """True when `output` is the per-class list of an NMS-by-score result.
+
+    This is the layout the Hailo-8 / Hailo-10H yolov6n HEFs actually return
+    (first-inference log: `layout=on-chip NMS, outputs=[('ragged',)]`)."""
+    if not isinstance(output, (list, tuple)) or not output:
         return False
-    first = endnodes[0]
-    try:
-        arr = np.asarray(first)
-    except ValueError:                      # ragged / object rows
-        return True
-    if arr.size == 0:
-        return True
-    return arr.ndim == 2 and arr.shape[-1] == 5
-
-
-def _post_nms_detections(endnodes, obj_thresh, input_h, input_w):
-    """Parse an on-chip NMS tensor. Returns (boxes, classes, scores) or None
-    when no layout validates."""
-    if _looks_like_per_class_list(endnodes):
-        candidates = [endnodes]
-    else:
-        candidates = endnodes
-
-    for output in candidates:
+    if len(output) > V6_CLASSES:
+        return False
+    for element in output:
+        if isinstance(element, (list, tuple)):
+            continue                                  # nested block of rows
         try:
-            if _shape_of(output)[0] == "ragged":
-                per_class = output
-            else:
-                arr = np.asarray(output)
-                if arr.ndim == 2 and arr.shape[-1] != 5 and arr.shape[0] != 5:
-                    per_class = _parse_compact_nms_by_class(arr.reshape(-1))
-                else:
-                    per_class = _per_class_iterable(output)
-        except (ValueError, TypeError):
-            per_class = output
-        boxes, classes, scores = [], [], []
-        for cls_id, dets in enumerate(per_class):
-            if dets is None:
-                continue
-            try:
-                dets = np.asarray(dets, dtype=np.float32)
-            except (ValueError, TypeError):
-                continue
-            if dets.size == 0 or dets.size % 5:
-                continue
-            dets = dets.reshape(-1, 5)
-            for det in dets:
-                score = float(det[4])
+            arr = np.asarray(element)
+        except ValueError:
+            continue
+        if arr.size and not (arr.ndim == 2 and arr.shape[-1] == 5):
+            return False                              # e.g. a list of tensors
+    return True
+
+
+def _per_class_iterable(output):
+    """Indexable-by-class sequence of (N, 5) rows
+    [ymin, xmin, ymax, xmax, score].
+
+    Layouts handled: the ragged NMS-by-score list (device layout), the compact
+    per-class buffer and the dense (C, 5, D) / (C, D, 5) float tensors."""
+    if _is_ragged(output):
+        return output
+    arr = np.asarray(output)
+    if arr.ndim == 2 and arr.shape[-1] == 5:
+        return [arr]
+    if arr.ndim >= 3 and arr.shape[-1] == 5:              # (C, D, 5)
+        return list(arr.reshape(-1, arr.shape[-2], 5))
+    if arr.ndim >= 3 and arr.shape[-2] == 5:              # (C, 5, D)
+        return list(np.transpose(arr.reshape(-1, 5, arr.shape[-1]), (0, 2, 1)))
+    return _parse_compact_nms_by_class(arr.reshape(-1))
+
+
+def _rows_of(dets):
+    """Yield (N, 5) float arrays from a per-class element, whatever the nesting
+    (a plain (N, 5) array, an empty array, or a nested list of those)."""
+    if dets is None:
+        return
+    try:
+        arr = np.asarray(dets, dtype=np.float32)
+    except (ValueError, TypeError):
+        arr = None
+    if arr is not None and arr.size and arr.size % 5 == 0:
+        yield arr.reshape(-1, 5)
+        return
+    if isinstance(dets, (list, tuple)):
+        for sub in dets:
+            yield from _rows_of(sub)
+
+
+def _post_nms_detections(payload, obj_thresh, input_h, input_w):
+    """Parse an on-chip NMS payload. Returns (boxes, classes, scores) or None."""
+    per_class = _per_class_iterable(payload)
+    boxes, classes, scores = [], [], []
+    for cls_id, dets in enumerate(per_class):
+        for rows in _rows_of(dets):
+            for row in rows:
+                score = float(row[4])
                 if score < obj_thresh:
                     continue
-                ymin, xmin, ymax, xmax = (float(det[0]), float(det[1]),
-                                          float(det[2]), float(det[3]))
+                ymin, xmin, ymax, xmax = (float(row[0]), float(row[1]),
+                                          float(row[2]), float(row[3]))
                 boxes.append([xmin * input_w, ymin * input_h,
                               xmax * input_w, ymax * input_h])
                 classes.append(int(cls_id))
                 scores.append(score)
-        if scores:
-            return (np.array(boxes, dtype=np.float32),
-                    np.array(classes, dtype=np.int32),
-                    np.array(scores, dtype=np.float32))
-    return None
+    if not scores:
+        return None
+    return (np.array(boxes, dtype=np.float32),
+            np.array(classes, dtype=np.int32),
+            np.array(scores, dtype=np.float32))
 
 
 def _classify_v6_heads(endnodes):
@@ -982,34 +1007,47 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     Returns (boxes, classes, scores) with boxes as xyxy in input-pixel space
     (the letterboxed network input); the caller un-letterboxes to the frame.
 
-    Layout (a): the HEF already ran NMS (HPP) — `nms_thresh` is ignored.
+    Layout (a): the HEF already ran NMS (HPP) — parsed as the compact buffer,
+    the dense forms or the ragged NMS-by-score list; `nms_thresh` is ignored.
     Layout (b): 9 raw split heads — objectness x class scores, then a host NMS
     with `nms_thresh` (Model Zoo default 0.65).
     """
     global _DET_OUTPUT_LOGGED
 
-    endnodes = _endnodes(hailo_output)
-    if not endnodes:
+    if hailo_output is None:
         return None, None, None
     if obj_thresh is None or obj_thresh <= 0:
         obj_thresh = V6_SCORE_THRES
 
+    endnodes = _endnodes(hailo_output)
     raw_heads = _classify_v6_heads(endnodes) is not None
-    detections = None
-    if not raw_heads:
-        detections = _post_nms_detections(endnodes, obj_thresh, input_h, input_w)
-    if detections is None:
+    if raw_heads:
         detections = _raw_head_detections(endnodes, obj_thresh, nms_thresh,
                                           input_h, input_w)
+    else:
+        payload = hailo_output if _is_ragged(hailo_output) else _first_output(hailo_output)
+        detections = _post_nms_detections(payload, obj_thresh, input_h, input_w)
+        if detections is None:
+            detections = _raw_head_detections(endnodes, obj_thresh, nms_thresh,
+                                              input_h, input_w)
 
     if not _DET_OUTPUT_LOGGED:
         print(f"[YOLOv6n] layout={'raw split heads' if raw_heads else 'on-chip NMS'}, "
               f"outputs={[_shape_of(e) for e in endnodes]}", flush=True)
+        if detections is None:
+            print("[YOLOv6n] no detections parsed from this layout", flush=True)
+        else:
+            boxes, classes, scores = detections
+            print(f"[YOLOv6n] parsed {len(boxes)} detections, scores "
+                  f"{float(scores.min()):.3f}..{float(scores.max()):.3f}, "
+                  f"boxes {float(boxes[:, 0].min()):.0f}..{float(boxes[:, 2].max()):.0f}",
+                  flush=True)
         _DET_OUTPUT_LOGGED = True
 
     if detections is None:
         return None, None, None
     return detections
+
 
 def unletterbox_boxes(boxes, lb_info):
     """Map xyxy boxes from the 320x320 letterboxed input back to the original
