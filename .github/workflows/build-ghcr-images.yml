@@ -55,6 +55,9 @@ on:
           - paddle_ocr_v5_mobile_recognition
           - arcface_mobilefacenet
           - yolov6n
+          - yolo26n
+          - yolo26s
+          - yolo26m
 
 permissions:
   contents: read
@@ -151,6 +154,12 @@ jobs:
             description: PaddleOCR v5 Mobile text recognition
           - model: yolov6n
             description: YOLOv6n object detection
+          - model: yolo26n
+            description: YOLO26n COCO object detection
+          - model: yolo26s
+            description: YOLO26s COCO object detection
+          - model: yolo26m
+            description: YOLO26m COCO object detection
 
     steps:
       - name: Checkout
