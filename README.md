@@ -56,6 +56,9 @@ requiring full CPU-side YOLOv3 decode.
 | Tiny-YOLOv4 | Object detection (COCO 80) | 6.05M | `src/rpi5_hailo8_tiny_yolov4/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4:latest` |
 | Tiny-YOLOv4 License Plates | License plate detection | 5.87M | `src/rpi5_hailo8_tiny_yolov4_license_plates/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4_license_plates:latest` |
 | LPRNet | License plate detection + numeric OCR pipeline | 7.14M OCR | `src/rpi5_hailo8_lprnet/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/lprnet:latest` |
+| YOLOv8n-seg | Instance segmentation (COCO 80) | 3.4M | `src/rpi5_hailo8_yolov8n_seg/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/yolov8n_seg:latest` |
+| YOLOv8s-seg | Instance segmentation (COCO 80) | 11.8M | `src/rpi5_hailo8_yolov8s_seg/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/yolov8s_seg:latest` |
+| YOLOv8m-seg | Instance segmentation (COCO 80) | 27.3M | `src/rpi5_hailo8_yolov8m_seg/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/yolov8m_seg:latest` |
 
 HEFs come from the official [Hailo Model Zoo](https://github.com/hailo-ai/hailo_model_zoo) Hailo-8 builds. Most use v2.19.0; the LPR models use the available v2.16/v2.17 Hailo-8 artifacts documented in their module READMEs.
 
@@ -68,6 +71,7 @@ HEFs come from the official [Hailo Model Zoo](https://github.com/hailo-ai/hailo_
 | CPU YOLOv3 decode | Tiny-YOLOv3, Tiny-YOLOv4 | No | Raw heads (HxWx255) |
 | License plate pipeline | Tiny-YOLOv4 License Plates, LPRNet | No | Raw HxWx18 detector heads + 5x19x11 OCR logits |
 | CPU DFL decode | DAMO-YOLO | No | Raw nanodet_split heads |
+| CPU DFL decode + per-class NMS | YOLOv8-seg (n/s/m) | No | Raw heads (DFL box, score, mask coeffs) + 160x160x32 proto |
 | CPU 6-head decode | CenterPose | No | Raw CenterNet heads + keypoints |
 | DB text detection | PaddleOCR v5 Mobile Detection | No | Text probability map |
 | CTC text recognition | PaddleOCR v5 Mobile Recognition | No | CTC logits |
@@ -312,5 +316,8 @@ Full checklist: `docs/CM5_HAILO8_MODEL_DEVELOPMENT_SOP_zh.md`
 - [Tiny-YOLOv4](src/rpi5_hailo8_tiny_yolov4/README.md) — [中文](src/rpi5_hailo8_tiny_yolov4/README_zh.md)
 - [Tiny-YOLOv4 License Plates](src/rpi5_hailo8_tiny_yolov4_license_plates/README.md) — [中文](src/rpi5_hailo8_tiny_yolov4_license_plates/README_zh.md)
 - [LPRNet pipeline](src/rpi5_hailo8_lprnet/README.md) — [中文](src/rpi5_hailo8_lprnet/README_zh.md)
+- [YOLOv8n-seg](src/rpi5_hailo8_yolov8n_seg/README.md) — [中文](src/rpi5_hailo8_yolov8n_seg/README_zh.md)
+- [YOLOv8s-seg](src/rpi5_hailo8_yolov8s_seg/README.md) — [中文](src/rpi5_hailo8_yolov8s_seg/README_zh.md)
+- [YOLOv8m-seg](src/rpi5_hailo8_yolov8m_seg/README.md) — [中文](src/rpi5_hailo8_yolov8m_seg/README_zh.md)
 
 Validation logs: each module ships a `TEST_REPORT.md`.

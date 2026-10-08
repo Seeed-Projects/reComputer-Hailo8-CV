@@ -49,6 +49,9 @@ NanoDet、SSD、Tiny-YOLO）、**语义分割**（STDC1）、**姿态估计**（
 | Tiny-YOLOv4 | 目标检测（COCO 80） | 6.05M | `src/rpi5_hailo8_tiny_yolov4/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4:latest` |
 | Tiny-YOLOv4 License Plates | 车牌检测 | 5.87M | `src/rpi5_hailo8_tiny_yolov4_license_plates/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/tiny_yolov4_license_plates:latest` |
 | LPRNet | 车牌检测 + 数字 OCR 流水线 | 7.14M OCR | `src/rpi5_hailo8_lprnet/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/lprnet:latest` |
+| YOLOv8n-seg | 实例分割（COCO 80） | 3.4M | `src/rpi5_hailo8_yolov8n_seg/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/yolov8n_seg:latest` |
+| YOLOv8s-seg | 实例分割（COCO 80） | 11.8M | `src/rpi5_hailo8_yolov8s_seg/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/yolov8s_seg:latest` |
+| YOLOv8m-seg | 实例分割（COCO 80） | 27.3M | `src/rpi5_hailo8_yolov8m_seg/` | `ghcr.io/seeed-projects/recomputer-hailo8-cv/yolov8m_seg:latest` |
 
 HEF 均来自官方 [Hailo Model Zoo](https://github.com/hailo-ai/hailo_model_zoo) 的 Hailo-8 构建。多数模型使用 v2.19.0；LPR 模型使用当前可用的 v2.16/v2.17 Hailo-8 产物，详见模块 README。
 
@@ -61,6 +64,7 @@ HEF 均来自官方 [Hailo Model Zoo](https://github.com/hailo-ai/hailo_model_zo
 | CPU YOLOv3 解码 | Tiny-YOLOv3、Tiny-YOLOv4 | 否 | Raw head（HxWx255） |
 | 车牌流水线 | Tiny-YOLOv4 License Plates、LPRNet | 否 | HxWx18 检测 head + 5x19x11 OCR logits |
 | CPU DFL 解码 | DAMO-YOLO | 否 | Raw nanodet_split head |
+| CPU DFL 解码 + 逐类 NMS | YOLOv8-seg（n/s/m） | 否 | Raw head（DFL 框、类别分数、掩码系数）+ 160x160x32 原型 |
 | CPU 6-head 解码 | CenterPose | 否 | Raw CenterNet head + 关键点 |
 
 ---
@@ -168,5 +172,8 @@ curl -X POST http://<设备_IP>:8000/api/models/damoyolo_tinynas_l25_s/predict -
 - [Tiny-YOLOv4](src/rpi5_hailo8_tiny_yolov4/README_zh.md) — [English](src/rpi5_hailo8_tiny_yolov4/README.md)
 - [Tiny-YOLOv4 License Plates](src/rpi5_hailo8_tiny_yolov4_license_plates/README_zh.md) — [English](src/rpi5_hailo8_tiny_yolov4_license_plates/README.md)
 - [LPRNet 流水线](src/rpi5_hailo8_lprnet/README_zh.md) — [English](src/rpi5_hailo8_lprnet/README.md)
+- [YOLOv8n-seg](src/rpi5_hailo8_yolov8n_seg/README_zh.md) — [English](src/rpi5_hailo8_yolov8n_seg/README.md)
+- [YOLOv8s-seg](src/rpi5_hailo8_yolov8s_seg/README_zh.md) — [English](src/rpi5_hailo8_yolov8s_seg/README.md)
+- [YOLOv8m-seg](src/rpi5_hailo8_yolov8m_seg/README_zh.md) — [English](src/rpi5_hailo8_yolov8m_seg/README.md)
 
 每个模块带 `TEST_REPORT.md` 验证记录。
