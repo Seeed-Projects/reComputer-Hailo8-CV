@@ -215,7 +215,8 @@ class VideoAnalyzer:
                         obj, nms = det_config.get()
                         boxes, scores, class_ids, masks = post_process_hailo(outputs, obj, nms, IMG_SIZE[1], IMG_SIZE[0])
                         if boxes is not None:
-                            draw_boxes(frame, boxes, scores, class_ids, masks, lb_info)
+                            real_boxes = unletterbox_boxes(boxes, lb_info)
+                            draw_boxes(frame, real_boxes, scores, class_ids, masks, lb_info)
                 if kind == 'ffmpeg':
                     out.stdin.write(frame.tobytes())
                 else:
@@ -937,11 +938,12 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     if hailo_output is None:
         return None, None, None, None
     if isinstance(hailo_output, dict):
-        endnodes = list(hailo_output.values())
+        named = list(hailo_output.items())
     elif isinstance(hailo_output, (list, tuple)):
-        endnodes = list(hailo_output)
+        named = [(str(i), t) for i, t in enumerate(hailo_output)]
     else:
-        endnodes = [hailo_output]
+        named = [("output", hailo_output)]
+    endnodes = [t for _, t in named]
 
     bboxes, scores_raw, masks_raw, proto = _classify_heads(endnodes)
     if not (len(bboxes) == len(scores_raw) == len(masks_raw) == 3) or proto is None:
@@ -980,6 +982,12 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
             a = np.asarray(a, dtype=np.float32)
             return f"{float(a.min()):.3g}..{float(a.max()):.3g}"
 
+        print(f"[YOLOv8-seg] vstreams: " + "; ".join(
+            f"{n}{tuple(np.asarray(t).shape)}" for n, t in named), flush=True)
+        for _n, _t in named:
+            _a = np.asarray(_t)
+            if _a.ndim >= 3 and _a.shape[-1] == _Y8_CLASSES and float(np.max(_a)) == 0.0:
+                print(f"[YOLOv8-seg] WARNING: 80-channel head {_n} is all zeros", flush=True)
         print(f"[YOLOv8-seg] anchors={len(boxes)}, proto={proto.shape} "
               f"proto_range={_rng(proto)}", flush=True)
         print(f"[YOLOv8-seg] box_range={[_rng(b) for b in bboxes]} "
@@ -1089,7 +1097,7 @@ def draw_boxes(image, boxes, scores, class_ids, masks=None, lb_info=None,
                 (overlay[binary[i]].astype(np.float32) * (1 - mask_alpha)
                  + np.array(color, dtype=np.float32) * mask_alpha)
             ).astype(np.uint8)
-# Composite every instance once: `binary` is (N, h, w) and cannot
+        # Composite every instance once: `binary` is (N, h, w) and cannot
         # index the (h, w) frame directly.
         any_mask = binary.any(axis=0)
         image[any_mask] = overlay[any_mask]
@@ -1157,7 +1165,8 @@ def inference_loop(cap, model, co_helper, is_video_file, target_fps):
                 obj, nms = det_config.get()
                 boxes, scores, class_ids, masks = post_process_hailo(outputs, obj, nms, IMG_SIZE[1], IMG_SIZE[0])
                 if boxes is not None:
-                    draw_boxes(frame, boxes, scores, class_ids, masks, lb_info)
+                    real_boxes = unletterbox_boxes(boxes, lb_info)
+                    draw_boxes(frame, real_boxes, scores, class_ids, masks, lb_info)
 
             inf_fps = 1.0 / inference_time if inference_time > 0 else 0
             fps_counter = 0.9 * fps_counter + 0.1 * inf_fps if fps_counter > 0 else inf_fps

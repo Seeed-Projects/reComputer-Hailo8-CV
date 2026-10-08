@@ -35,6 +35,7 @@
 |---|---|
 | Python syntax (py_compile) | Pass |
 | Offline decode harness (planted synthetic heads -> exact box, DFL and folded layouts) | Pass |
+| Preview and offline-analysis box mapping (unletterbox_boxes before draw_boxes, same form as the Hailo-10H modules) | Pass |
 | CI matrix entry added | Pass |
 
 ### Hardware verification - pending (assigned to the maintainer)
