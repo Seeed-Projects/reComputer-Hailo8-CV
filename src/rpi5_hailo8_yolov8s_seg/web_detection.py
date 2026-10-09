@@ -975,27 +975,26 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
     coeffs = np.concatenate(all_coeffs, axis=0)      # (A, 32)
 
     if not _SEG_OUTPUT_LOGGED:
-        # Log the value range of every tensor once so wrong value semantics
-        # (quantized reads, double activation, folded DFL) are visible in the
-        # first inference log.
-        def _rng(a):
-            a = np.asarray(a, dtype=np.float32)
-            return f"{float(a.min()):.3g}..{float(a.max()):.3g}"
+        # First-inference tensor/range logging is silenced; uncomment the
+        # lines below to diagnose a new HEF layout.
+        # def _rng(a):
+            # a = np.asarray(a, dtype=np.float32)
+            # return f"{float(a.min()):.3g}..{float(a.max()):.3g}"
 
-        print(f"[YOLOv8-seg] vstreams: " + "; ".join(
-            f"{n}{tuple(np.asarray(t).shape)}" for n, t in named), flush=True)
+        # print(f"[YOLOv8-seg] vstreams: " + "; ".join(
+            # f"{n}{tuple(np.asarray(t).shape)}" for n, t in named), flush=True)
         for _n, _t in named:
             _a = np.asarray(_t)
             if _a.ndim >= 3 and _a.shape[-1] == _Y8_CLASSES and float(np.max(_a)) == 0.0:
                 print(f"[YOLOv8-seg] WARNING: 80-channel head {_n} is all zeros", flush=True)
-        print(f"[YOLOv8-seg] anchors={len(boxes)}, proto={proto.shape} "
-              f"proto_range={_rng(proto)}", flush=True)
-        print(f"[YOLOv8-seg] box_range={[_rng(b) for b in bboxes]} "
-              f"score_range={[_rng(s) for s in scores_raw]} "
-              f"coeff_range={[_rng(m) for m in masks_raw]}", flush=True)
-        print(f"[YOLOv8-seg] score sigmoid "
-              f"{'applied' if sigmoid_applied else 'skipped (already probabilities)'}, "
-              f"decoded scores {_rng(scores)}, boxes {_rng(boxes)}", flush=True)
+        # print(f"[YOLOv8-seg] anchors={len(boxes)}, proto={proto.shape} "
+              # f"proto_range={_rng(proto)}", flush=True)
+        # print(f"[YOLOv8-seg] box_range={[_rng(b) for b in bboxes]} "
+              # f"score_range={[_rng(s) for s in scores_raw]} "
+              # f"coeff_range={[_rng(m) for m in masks_raw]}", flush=True)
+        # print(f"[YOLOv8-seg] score sigmoid "
+              # f"{'applied' if sigmoid_applied else 'skipped (already probabilities)'}, "
+              # f"decoded scores {_rng(scores)}, boxes {_rng(boxes)}", flush=True)
         _SEG_OUTPUT_LOGGED = True
 
     # one2many predictions: one label per anchor (ultralytics multi_label off),
