@@ -46,6 +46,7 @@ on:
           - yolact_regnetx_800mf
           - yolact_regnetx_1_6gf
           - retinaface_mobilenet_v1
+          - lightface_slim
           - yolo26m_seg
           - yolo26x_seg
           - yolov5n_seg
@@ -141,6 +142,8 @@ jobs:
             description: YOLACT-RegNetX-1.6GF instance segmentation
           - model: retinaface_mobilenet_v1
             description: RetinaFace MobileNet-v1 face detection
+          - model: lightface_slim
+            description: LightFace Slim ultra-lightweight face detection
           - model: yolo26m_seg
             description: YOLO26m-seg instance segmentation
           - model: yolo26x_seg
