@@ -753,15 +753,11 @@ def post_process_hailo(hailo_output, obj_thresh, nms_thresh, input_h, input_w):
             confs_raw.append(arr)
 
     if not _LIGHTFACE_LOGGED:
-        # Log every vstream name/shape and the value ranges once, so a wrong
-        # layout or a missing activation is visible on the first inference.
-        def _rng(a):
-            a = np.asarray(a, dtype=np.float32)
-            return f"{float(a.min()):.3g}..{float(a.max()):.3g}"
-
-        print("[LightFace] vstreams: " + "; ".join(shapes), flush=True)
-        print(f"[LightFace] bbox_range={[_rng(b) for b in boxes_raw]} "
-              f"conf_range={[_rng(c) for c in confs_raw]}", flush=True)
+        # First-inference vstream/range logging, kept only while the layout was
+        # being validated on device. Uncomment to diagnose a new HEF:
+        # print("[LightFace] vstreams: " + "; ".join(shapes), flush=True)
+        # print(f"[LightFace] bbox_range={[_rng(b) for b in boxes_raw]} "
+        #       f"conf_range={[_rng(c) for c in confs_raw]}", flush=True)
         _LIGHTFACE_LOGGED = True
 
     if len(boxes_raw) != len(layout) or len(confs_raw) != len(layout):
