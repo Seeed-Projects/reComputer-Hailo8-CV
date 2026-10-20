@@ -227,7 +227,8 @@ class VideoAnalyzer:
                         obj, nms = det_config.get()
                         boxes, scores, class_ids, masks = post_process_hailo(outputs, obj, nms, IMG_SIZE[1], IMG_SIZE[0])
                         if boxes is not None:
-                            draw_boxes(frame, boxes, scores, class_ids, masks, lb_info)
+                            real_boxes = unletterbox_boxes(boxes, lb_info)
+                            draw_boxes(frame, real_boxes, scores, class_ids, masks, lb_info)
                 if kind == 'ffmpeg':
                     out.stdin.write(frame.tobytes())
                 else:
@@ -1121,7 +1122,8 @@ def inference_loop(cap, model, co_helper, is_video_file, target_fps):
                 obj, nms = det_config.get()
                 boxes, scores, class_ids, masks = post_process_hailo(outputs, obj, nms, IMG_SIZE[1], IMG_SIZE[0])
                 if boxes is not None:
-                    draw_boxes(frame, boxes, scores, class_ids, masks, lb_info)
+                    real_boxes = unletterbox_boxes(boxes, lb_info)
+                    draw_boxes(frame, real_boxes, scores, class_ids, masks, lb_info)
 
             inf_fps = 1.0 / inference_time if inference_time > 0 else 0
             fps_counter = 0.9 * fps_counter + 0.1 * inf_fps if fps_counter > 0 else inf_fps
