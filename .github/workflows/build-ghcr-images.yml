@@ -62,6 +62,8 @@ on:
           - yolo26n
           - yolo26s
           - yolo26m
+          - yolo26s_seg
+          - yolo26l_seg
 
 permissions:
   contents: read
@@ -172,6 +174,10 @@ jobs:
             description: YOLO26s COCO object detection
           - model: yolo26m
             description: YOLO26m COCO object detection
+          - model: yolo26l_seg
+            description: YOLO26l-seg instance segmentation
+          - model: yolo26s_seg
+            description: YOLO26s-seg instance segmentation
 
     steps:
       - name: Checkout
