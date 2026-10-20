@@ -826,7 +826,11 @@ def _classify_heads(endnodes):
         h, w, c = arr.shape
         if h == _Y26_PROTO and c == 32:
             proto = arr
-        elif c == 64:
+        elif c in (4, 64):
+            # 4 channels: regression_length=1 (l, t / r, b distances in
+            # stride units) — the layout the Hailo-8 yolo26*_seg HEFs
+            # expose on device. 64 channels: the DFL 4x16 layout of
+            # other Hailo-8 compiles.
             bboxes.append(arr)
         elif c == 80:
             scores.append(arr)
@@ -848,12 +852,17 @@ def _decode_yolo26_boxes(bbox_head, stride):
     bbox_head: (F, F, 64) raw; returns xyxy in input pixels, shape
     (F*F, 4) with row-major grid order (y-major, x-minor).
     """
-    fh, fw, _ = bbox_head.shape
-    # DFL: softmax over 16 bins, expectation -> distance in stride units.
-    d = bbox_head.reshape(fh, fw, 4, _Y26_REG_BINS)
-    d = _softmax_last(d)                      # (F, F, 4, 16)
-    bins = np.arange(_Y26_REG_BINS, dtype=np.float32)
-    dist = d @ bins                           # (F, F, 4) stride units
+    fh, fw, c = bbox_head.shape
+    if c == 4 * _Y26_REG_BINS:
+        # DFL: softmax over 16 bins, expectation -> distance in stride units.
+        d = bbox_head.reshape(fh, fw, 4, _Y26_REG_BINS)
+        d = _softmax_last(d)                  # (F, F, 4, 16)
+        bins = np.arange(_Y26_REG_BINS, dtype=np.float32)
+        dist = d @ bins                       # (F, F, 4) stride units
+    elif c == 4:
+        dist = bbox_head.astype(np.float32)
+    else:
+        raise ValueError(f"unsupported box head channels: {c}")
 
     # Grid offsets: cell center in stride units (broadcast-safe: keep (F, F)).
     gx, gy = np.meshgrid(np.arange(fw), np.arange(fh))  # (F, F)
@@ -1044,7 +1053,8 @@ def draw_boxes(image, boxes, scores, class_ids, masks=None, lb_info=None,
                 (overlay[binary[i]].astype(np.float32) * (1 - mask_alpha)
                  + np.array(color, dtype=np.float32) * mask_alpha)
             ).astype(np.uint8)
-        image[binary] = overlay[binary]
+        any_mask = binary.any(axis=0)
+        image[any_mask] = overlay[any_mask]
     for i, box in enumerate(boxes):
         x1, y1, x2, y2 = box.astype(int)
         cl = int(class_ids[i]) % len(COCO_CLASSES)
