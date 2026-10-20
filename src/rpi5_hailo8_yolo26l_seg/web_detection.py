@@ -1055,7 +1055,8 @@ def draw_boxes(image, boxes, scores, class_ids, masks=None, lb_info=None,
                 (overlay[binary[i]].astype(np.float32) * (1 - mask_alpha)
                  + np.array(color, dtype=np.float32) * mask_alpha)
             ).astype(np.uint8)
-        image[binary] = overlay[binary]
+        any_mask = binary.any(axis=0)
+        image[any_mask] = overlay[any_mask]
     for i, box in enumerate(boxes):
         x1, y1, x2, y2 = box.astype(int)
         cl = int(class_ids[i]) % len(COCO_CLASSES)
