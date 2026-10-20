@@ -826,7 +826,10 @@ def _classify_heads(endnodes):
         h, w, c = arr.shape
         if h == _Y26_PROTO and c == 32:
             proto = arr
-        elif c == 64:
+        elif c in (4, 64):
+            # 4 channels: regression_length=1 (l, t / r, b distances in stride
+            # units) — the layout the Hailo-8 yolo26s_seg HEF exposes on device.
+            # 64 channels: the DFL 4x16 layout of other Hailo-8 compiles.
             bboxes.append(arr)
         elif c == 80:
             scores.append(arr)
@@ -845,15 +848,23 @@ def _classify_heads(endnodes):
 def _decode_yolo26_boxes(bbox_head, stride):
     """One2one distance decode (port of _yolo6_decode + DFL softmax).
 
-    bbox_head: (F, F, 64) raw; returns xyxy in input pixels, shape
-    (F*F, 4) with row-major grid order (y-major, x-minor).
+    bbox_head: (F, F, C). C == 4 is the folded regression_length=1 layout (l, t
+    and r, b distances in stride units, the layout the Hailo-8 yolo26s_seg HEF
+    exposes on device); C == 64 is the DFL 4x16 layout and goes through the
+    softmax expectation first. Returns xyxy in input pixels, shape (F*F, 4)
+    with row-major grid order (y-major, x-minor).
     """
-    fh, fw, _ = bbox_head.shape
-    # DFL: softmax over 16 bins, expectation -> distance in stride units.
-    d = bbox_head.reshape(fh, fw, 4, _Y26_REG_BINS)
-    d = _softmax_last(d)                      # (F, F, 4, 16)
-    bins = np.arange(_Y26_REG_BINS, dtype=np.float32)
-    dist = d @ bins                           # (F, F, 4) stride units
+    fh, fw, c = bbox_head.shape
+    if c == 4 * _Y26_REG_BINS:
+        # DFL: softmax over 16 bins, expectation -> distance in stride units.
+        d = bbox_head.reshape(fh, fw, 4, _Y26_REG_BINS)
+        d = _softmax_last(d)                  # (F, F, 4, 16)
+        bins = np.arange(_Y26_REG_BINS, dtype=np.float32)
+        dist = d @ bins                       # (F, F, 4) stride units
+    elif c == 4:
+        dist = bbox_head.astype(np.float32)
+    else:
+        raise ValueError(f"unsupported box head channels: {c}")
 
     # Grid offsets: cell center in stride units (broadcast-safe: keep (F, F)).
     gx, gy = np.meshgrid(np.arange(fw), np.arange(fh))  # (F, F)
