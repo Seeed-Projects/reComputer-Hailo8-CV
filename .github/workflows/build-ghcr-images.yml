@@ -55,6 +55,11 @@ on:
           - yolov8n_seg
           - yolov8s_seg
           - yolov8m_seg
+          - yolov11n_seg
+          - yolov11s_seg
+          - yolov11m_seg
+          - yolov11l_seg
+          - yolov11x_seg
           - paddle_ocr_v5_mobile_detection
           - paddle_ocr_v5_mobile_recognition
           - arcface_mobilefacenet
@@ -162,6 +167,16 @@ jobs:
             description: YOLOv8s-seg instance segmentation
           - model: yolov8m_seg
             description: YOLOv8m-seg instance segmentation
+          - model: yolov11n_seg
+            description: YOLO11n-seg instance segmentation
+          - model: yolov11s_seg
+            description: YOLO11s-seg instance segmentation
+          - model: yolov11m_seg
+            description: YOLO11m-seg instance segmentation
+          - model: yolov11l_seg
+            description: YOLO11l-seg instance segmentation
+          - model: yolov11x_seg
+            description: YOLO11x-seg instance segmentation
           - model: paddle_ocr_v5_mobile_detection
             description: PaddleOCR v5 Mobile text detection
           - model: paddle_ocr_v5_mobile_recognition
