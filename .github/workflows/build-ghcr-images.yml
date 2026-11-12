@@ -69,6 +69,7 @@ on:
           - yolo26m
           - yolo26s_seg
           - yolo26l_seg
+          - resnet_v1_18
 
 permissions:
   contents: read
@@ -193,6 +194,8 @@ jobs:
             description: YOLO26l-seg instance segmentation
           - model: yolo26s_seg
             description: YOLO26s-seg instance segmentation
+          - model: resnet_v1_18
+            description: ResNet-18 ImageNet classification
 
     steps:
       - name: Checkout
