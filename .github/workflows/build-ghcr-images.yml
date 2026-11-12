@@ -226,9 +226,7 @@ jobs:
             echo "Changed files:"
             echo "$changed_files"
 
-            if echo "$changed_files" | grep -Fxq ".github/workflows/build-ghcr-images.yml"; then
-              build=true
-            elif echo "$changed_files" | grep -Eq "^src/rpi5_hailo8_${{ matrix.model }}/|^docker/hailo8/${{ matrix.model }}\\.dockerfile$"; then
+            if echo "$changed_files" | grep -Eq "^src/rpi5_hailo8_${{ matrix.model }}/|^docker/hailo8/${{ matrix.model }}\\.dockerfile$"; then
               build=true
             fi
           fi
