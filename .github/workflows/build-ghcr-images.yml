@@ -73,6 +73,8 @@ on:
           - resnet_v1_34
           - resnet_v1_50
           - cas_vit_m
+          - cas_vit_s
+          - cas_vit_t
 
 permissions:
   contents: read
@@ -205,6 +207,10 @@ jobs:
             description: ResNet-50 ImageNet classification
           - model: cas_vit_m
             description: CAS-ViT-M ImageNet classification
+          - model: cas_vit_s
+            description: CAS-ViT-S ImageNet classification
+          - model: cas_vit_t
+            description: CAS-ViT-T ImageNet classification
 
     steps:
       - name: Checkout
