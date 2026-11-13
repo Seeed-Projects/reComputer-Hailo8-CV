@@ -32,6 +32,10 @@ on:
           - ssd_mobilenet_v1
           - ssd_mobilenet_v2
           - tiny_yolov3
+          - yolov3
+          - yolov3_416
+          - yolov3_gluon
+          - yolov3_gluon_416
           - tiny_yolov4
           - tiny_yolov4_license_plates
           - lprnet
@@ -127,6 +131,14 @@ jobs:
             description: SSD MobileNet V2 object detection
           - model: tiny_yolov3
             description: Tiny-YOLOv3 object detection
+          - model: yolov3
+            description: YOLOv3 COCO object detection
+          - model: yolov3_416
+            description: YOLOv3-416 COCO object detection
+          - model: yolov3_gluon
+            description: YOLOv3-Gluon COCO object detection
+          - model: yolov3_gluon_416
+            description: YOLOv3-Gluon-416 COCO object detection
           - model: tiny_yolov4
             description: Tiny-YOLOv4 object detection
           - model: tiny_yolov4_license_plates
