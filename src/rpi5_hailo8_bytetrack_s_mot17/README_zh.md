@@ -43,7 +43,7 @@ sudo docker run --rm --privileged --net=host \
 ```
 
 打开 `http://<开发板IP>:8000` 查看带 track ID 的叠加。内置的 `video/test.mp4`
-是 Hailo 街景演示片段；要做更接近 MOT17 的演示，建议换行人较多的视频。USB
+是 ByteTrack 上游仓库的 palace 行人演示片段。USB
 摄像头需挂载 `/dev/video0`，并把 `--video_path ...` 改为 `--camera_id 0`。
 
 ## REST API

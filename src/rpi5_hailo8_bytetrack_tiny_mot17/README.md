@@ -44,8 +44,8 @@ sudo docker run --rm --privileged --net=host \
 ```
 
 Open `http://<BOARD_IP>:8000` for the track-ID overlay. The bundled
-`video/test.mp4` is the Hailo street-scene demo clip; for a stronger MOT17-style
-demo use a pedestrian-heavy video. For a USB camera, mount `/dev/video0` and
+`video/test.mp4` is the ByteTrack palace pedestrian demo clip from the upstream
+ByteTrack repository. For a USB camera, mount `/dev/video0` and
 replace `--video_path ...` with `--camera_id 0`.
 
 ## REST API
