@@ -34,6 +34,8 @@ on:
           - tiny_yolov3
           - bytetrack_s_mot17
           - bytetrack_tiny_mot17
+          - bytetrack_nano_mot17
+          - bytetrack_m_mot17
           - yolov3
           - yolov3_416
           - yolov3_gluon
@@ -137,6 +139,10 @@ jobs:
             description: ByteTrack-S MOT17 person tracking
           - model: bytetrack_tiny_mot17
             description: ByteTrack-Tiny MOT17 person tracking
+          - model: bytetrack_nano_mot17
+            description: ByteTrack-Nano MOT17 person tracking
+          - model: bytetrack_m_mot17
+            description: ByteTrack-M MOT17 person tracking
           - model: yolov3
             description: YOLOv3 COCO object detection
           - model: yolov3_416
