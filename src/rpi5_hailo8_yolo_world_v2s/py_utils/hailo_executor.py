@@ -99,31 +99,41 @@ class HailoInfer:
         )
 
     @staticmethod
-    def _match_shape(array, expected_shape):
-        """Add or drop a single batch dimension to match an HEF vstream."""
+    def _frame_shape(expected_shape):
+        """Return the per-frame shape, dropping a leading batch dim of 1."""
         expected = tuple(int(v) for v in expected_shape)
-        if array.ndim == len(expected):
-            return array
-        if array.ndim + 1 == len(expected):
-            return array.reshape((1,) + array.shape)
-        if array.ndim == len(expected) + 1 and array.shape[0] == 1:
-            return array.reshape(expected)
-        raise ValueError(
-            f"Cannot map buffer shape {array.shape} to HEF shape {expected}"
-        )
+        if len(expected) > 1 and expected[0] == 1:
+            return expected[1:]
+        return expected
+
+    @classmethod
+    def _as_single_frame(cls, array, expected_shape):
+        """Reshape one sample to (1, ...) so HailoRT sees one frame per input.
+
+        InferVStreams counts frames from shape[0] for every input. The image
+        vstream is (H, W, C) while the text vstream is (1, 80, 512); without a
+        common leading batch dim HailoRT compares 640 with 1 and rejects the
+        call.
+        """
+        frame_shape = cls._frame_shape(expected_shape)
+        expected_items = int(np.prod(frame_shape))
+        if array.size != expected_items:
+            raise ValueError(
+                f"Buffer size {array.size} != HEF frame size {expected_items} "
+                f"(shape {frame_shape})"
+            )
+        return np.ascontiguousarray(array.reshape((1,) + frame_shape))
 
     def run(self, image, text_embeddings=None):
         if image.dtype != np.uint8:
             image = image.astype(np.uint8)
-        image = np.ascontiguousarray(
-            self._match_shape(image, self._image_shape)
-        )
+        image = self._as_single_frame(image, self._image_shape)
 
         if text_embeddings is None:
             embeddings = self._text_embeddings
         else:
             embeddings = np.ascontiguousarray(text_embeddings, dtype=np.float32)
-            embeddings = self._match_shape(embeddings, self._text_shape)
+            embeddings = self._as_single_frame(embeddings, self._text_shape)
         if embeddings is None:
             raise RuntimeError(
                 "Text embeddings are not installed; call set_text_embeddings()"
