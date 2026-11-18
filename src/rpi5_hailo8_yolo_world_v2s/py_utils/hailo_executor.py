@@ -61,10 +61,13 @@ class HailoInfer:
 
         self.output_infos = self.hef.get_output_vstream_infos()
 
-        # Keep every input in its native HEF format: UINT8 for the image and
-        # FLOAT32 for the CLIP embeddings. AUTO lets each vstream use the
-        # device format instead of forcing one dtype across both inputs.
-        in_p = InputVStreamParams.make(self.network_group)
+        # Ask HailoRT for float32 host buffers on every input. The image vstream
+        # is UINT8 natively and the text vstream is quantized; requesting
+        # FLOAT32 makes HailoRT apply the vstream quantization instead of a
+        # plain uint8 cast, which would collapse the CLIP embeddings to zeros.
+        in_p = InputVStreamParams.make(
+            self.network_group, format_type=FormatType.FLOAT32
+        )
         out_p = OutputVStreamParams.make(
             self.network_group, format_type=FormatType.FLOAT32
         )
@@ -125,8 +128,8 @@ class HailoInfer:
         return np.ascontiguousarray(array.reshape((1,) + frame_shape))
 
     def run(self, image, text_embeddings=None):
-        if image.dtype != np.uint8:
-            image = image.astype(np.uint8)
+        if image.dtype != np.float32:
+            image = image.astype(np.float32)
         image = self._as_single_frame(image, self._image_shape)
 
         if text_embeddings is None:
