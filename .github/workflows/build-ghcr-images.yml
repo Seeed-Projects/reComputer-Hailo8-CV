@@ -74,7 +74,6 @@ on:
           - yolov6n
           - yolo26n
           - yolov8
-          - yolo_world_v2s
           - yolo26s
           - yolo26m
           - yolo26s_seg
@@ -219,8 +218,6 @@ jobs:
             description: YOLO26n COCO object detection
           - model: yolov8
             description: YOLOv8 object detection
-          - model: yolo_world_v2s
-            description: YOLO-World v2s zero-shot object detection
           - model: yolo26s
             description: YOLO26s COCO object detection
           - model: yolo26m
