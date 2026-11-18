@@ -74,6 +74,7 @@ on:
           - yolov6n
           - yolo26n
           - yolov8
+          - stark_lightning_repvgg_a0
           - yolo26s
           - yolo26m
           - yolo26s_seg
@@ -218,6 +219,8 @@ jobs:
             description: YOLO26n COCO object detection
           - model: yolov8
             description: YOLOv8 object detection
+          - model: stark_lightning_repvgg_a0
+            description: STARK-Lightning single-object tracking
           - model: yolo26s
             description: YOLO26s COCO object detection
           - model: yolo26m
