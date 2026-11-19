@@ -3,6 +3,7 @@ import os
 import subprocess
 import threading
 import time
+import traceback
 from collections import deque
 
 import cv2
@@ -160,6 +161,7 @@ class TrackingJob:
                 if total > 0:
                     self.progress = min(99, int(frame_idx / total * 100))
         except Exception as exc:
+            traceback.print_exc()
             self.error_msg = f"Tracking error: {exc}"
         finally:
             cap.release()
@@ -255,7 +257,7 @@ async def analyze_video(
         )
 
     base = os.path.splitext(name)[0]
-    output_name = f"{base}_stark_results.mp4"
+    output_name = f"{base}_stark_results_{int(time.time() * 1000)}.mp4"
     output_path = os.path.join(OUTPUT_DIR, output_name)
     if not job.start(input_path, output_path, (x, y, w, h)):
         raise HTTPException(status_code=409, detail="Another tracking job is running")
@@ -479,6 +481,10 @@ async function runTracking() {
 
   document.getElementById('runBtn').disabled = true;
   document.getElementById('result').style.display = 'none';
+  const oldVideo = document.getElementById('resultVideo');
+  oldVideo.pause();
+  oldVideo.removeAttribute('src');
+  oldVideo.load();
   setStatus('Starting...');
   const res = await fetch('/api/video/analyze', { method:'POST', body:form });
   const data = await res.json();
@@ -515,8 +521,10 @@ function startPolling() {
       } else if (data.progress >= 100) {
         setStatus('Done.');
         if (data.output) {
-          const url = '/api/video/download/' + encodeURIComponent(data.output);
-          document.getElementById('resultVideo').src = url;
+          const url = '/api/video/download/' + encodeURIComponent(data.output) + '?v=' + Date.now();
+          const video = document.getElementById('resultVideo');
+          video.src = url;
+          video.load();
           document.getElementById('downloadLink').href = url;
           document.getElementById('result').style.display = 'block';
         }

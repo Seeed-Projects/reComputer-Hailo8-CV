@@ -9,6 +9,7 @@ TEMPLATE_SIZE = 128
 SEARCH_FACTOR = 5.0
 SEARCH_SIZE = 320
 CLIP_MARGIN = 10.0
+_DEBUG_ONCE = False
 
 
 def sample_target(image, box, area_factor, output_sz):
@@ -101,8 +102,33 @@ class StarkTracker:
         self.template = cv2.cvtColor(template, cv2.COLOR_BGR2RGB)
         return self.state.copy()
 
+    @staticmethod
+    def _extract_box(outputs):
+        """Return the 4-value box head, independent of output ordering.
+
+        The HEF must expose a 4-value box output. If it exposes multiple
+        vstreams, pick the one whose flattened size is exactly 4 instead of
+        blindly taking the first output.
+        """
+        candidates = []
+        for name, value in outputs.items():
+            try:
+                arr = np.asarray(value, dtype=np.float64).reshape(-1)
+            except Exception:
+                continue
+            candidates.append((name, arr))
+        for _, arr in candidates:
+            if arr.size == 4:
+                return arr
+        shapes = ", ".join(
+            f"{name}{np.asarray(value).shape}" for name, value in outputs.items()
+        )
+        raise RuntimeError(f"STARK output has no 4-value box head; outputs: {shapes}")
+
     def update(self, frame):
         """Track one frame and return the new xywh state in image pixels."""
+        global _DEBUG_ONCE
+
         if not self.initialized:
             raise RuntimeError("Call initialize() before update()")
 
@@ -115,9 +141,23 @@ class StarkTracker:
         if outputs is None:
             return self.state.copy()
 
-        box_norm = np.asarray(list(outputs.values())[0], dtype=np.float64).reshape(-1)[:4]
-        if box_norm.size != 4 or not np.all(np.isfinite(box_norm)):
+        box_norm = self._extract_box(outputs)
+        if not np.all(np.isfinite(box_norm)):
             return self.state.copy()
+
+        log_first = not _DEBUG_ONCE
+        if log_first:
+            _DEBUG_ONCE = True
+            shapes = ", ".join(
+                f"{name}{np.asarray(value).shape}" for name, value in outputs.items()
+            )
+            print(f"[STARK] raw outputs: {shapes}", flush=True)
+            print(
+                f"[STARK] first step: prev={np.round(self.state, 1).tolist()} "
+                f"resize={resize_factor:.4f} "
+                f"box_norm={np.round(box_norm, 4).tolist()}",
+                flush=True,
+            )
 
         self.state = map_box_back(
             box_norm,
@@ -126,6 +166,11 @@ class StarkTracker:
             frame.shape[0],
             frame.shape[1],
         )
+        if log_first:
+            print(
+                f"[STARK] first step mapped={np.round(self.state, 1).tolist()}",
+                flush=True,
+            )
         return self.state.copy()
 
     def reset(self):
