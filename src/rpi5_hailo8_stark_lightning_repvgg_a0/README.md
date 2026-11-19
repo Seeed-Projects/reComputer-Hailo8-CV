@@ -7,8 +7,8 @@ Single-object tracking module for **Raspberry Pi 5 / CM5 + Hailo-8**
 
 Unlike the detection modules, tracking is stateful. The first frame seeds the
 template from a user-selected box; each later frame crops the search region
-around the previous prediction, runs the HEF, and maps the 4-value box head
-back to image coordinates.
+around the previous prediction, runs the HEF, decodes the corner heatmaps, and
+maps the resulting box back to image coordinates.
 
 ---
 
@@ -83,9 +83,9 @@ The implementation follows the Model Zoo `tracker_infer.py` closed loop:
 2. `update(frame)`: crop a square region of `5x` the previous box area around
    the previous center, resize to 320x320, run the HEF with
    `template + search`.
-3. Decode the 4-value output as normalized `xyxy` in the search crop, multiply
-   by the crop scale, add the crop offset, clip to the frame, and store the new
-   `xywh` state.
+3. Decode the HEF's two 20x20 corner heatmaps with a per-channel softmax and
+   soft-argmax on the 320x320 grid, producing normalized `xyxy`; multiply by
+   the search-crop scale, add the crop offset, and clip to the frame.
 
 The HEF applies normalization in-network, so the application feeds raw RGB
 pixels as float32; no manual mean/std subtraction.

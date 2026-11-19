@@ -12,7 +12,10 @@ https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.20.0/hai
 - SHA256: `7319ef5e0016e85510a71a86e8231a1fb0558a6475fa041e08919cc960c03299`
 - Network: STARK-Lightning, RepVGG-A0 backbone, single-object tracking
 - Inputs: `input_layer1` template `128x128x3`, `input_layer2` search `320x320x3`
-- Output: 4 normalized `xyxy` coordinates in the search-crop frame
+- HEF output: `conv33`, two 20x20 corner heatmaps `(1, 20, 20, 2)`
+- Host decode: per-channel softmax over the 400 cells, soft-argmax on the
+  320x320 pixel-center grid (8..312, step 16), concat `[x1,y1,x2,y2]`, divide by
+  320; this matches the ONNX `pred_boxes [1, 4]` output
 
 The HEF contains the in-network normalization used by the Model Zoo YAML:
 mean `[123.675, 116.28, 103.53]`, std `[58.395, 57.12, 57.375]`, RGB order.

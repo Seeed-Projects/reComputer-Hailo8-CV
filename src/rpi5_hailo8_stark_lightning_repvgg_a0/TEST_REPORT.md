@@ -28,12 +28,15 @@
 | 搜索裁剪 | 同一帧调用 `sample_target(..., 5.0, 320)` | 通过：输出 320×320 |
 | 边界裁剪 | `clip_box` 对越界框 | 通过：结果留在画面内 |
 | 坐标映射 | `map_box_back` 把归一化框映射回图像坐标 | 通过：结果与已知状态一致、宽高为正 |
+| 盒头解码 | ONNX ReferenceEvaluator：`conv_tower.2` → softmax/soft-argmax 对比 `pred_boxes` | 通过：最大绝对误差 < 1e-7；one-hot 热图映射也通过 |
+| HEF 输入/输出 | 实机日志（2026-11-19） | 输入 `input_layer2 (320,320,3)`、`input_layer1 (128,128,3)`；输出 `conv33 (1,20,20,2)` |
 | 输入 shape | 桩模块加载执行器，调用 `_as_single_frame` | 通过：模板 `(1,128,128,3)`、搜索 `(1,320,320,3)` |
 | HEF 大小/SHA | `sha256sum` | 通过：与 model/README 一致 |
 | Dockerfile CMD | 检查引用的 HEF 路径 | 通过：`model/stark_lightning_repvgg_a0.hef` 存在 |
 | CI 矩阵 | 检查 workflow option/include | 通过：`stark_lightning_repvgg_a0` 已加入 |
 
-这些检查不覆盖真实 HailoRT 的 HEF 加载、输入格式、输出布局或跟踪精度。
+这些检查不覆盖真实 HailoRT 的完整跟踪效果；HEF 的输入/输出形状已由实机日志确认，
+盒头解码已用 ONNX 参考输出验证。
 
 ---
 
@@ -41,8 +44,8 @@
 
 以下项目必须在连接 Hailo-8 的开发板上执行，当前状态均为 **Pending**：
 
-- [ ] HEF 能被 HailoRT 4.23 加载，打印真实的输入/输出名称与形状。
-- [ ] `input_layer1` 接受 `128×128×3` 模板，`input_layer2` 接受 `320×320×3` 搜索图。
+- [x] HEF 能被 HailoRT 4.23 加载，实际输出为 `conv33 (1,20,20,2)`，已由 host 侧 soft-argmax 解码。
+- [x] `input_layer1` 接受 `128×128×3` 模板，`input_layer2` 接受 `320×320×3` 搜索图。
 - [ ] 首帧初始化后，模板和搜索裁剪的 RGB/归一化与官方预处理一致。
 - [ ] 用一个真实视频完成完整跟踪，检查框不会明显漂移或丢失。
 - [ ] 记录推理 FPS、端到端 FPS 和内存占用。

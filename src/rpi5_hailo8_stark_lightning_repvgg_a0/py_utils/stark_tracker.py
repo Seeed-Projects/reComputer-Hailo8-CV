@@ -11,6 +11,14 @@ SEARCH_SIZE = 320
 CLIP_MARGIN = 10.0
 _DEBUG_ONCE = False
 
+# ONNX box head constants: a 20x20 grid of pixel centers in the 320x320
+# search crop (8, 24, ..., 312). The HEF exposes the conv_tower.2 corner
+# heatmaps (20x20x2); the host applies the softmax/soft-argmax decode that
+# the ONNX graph performs before pred_boxes.
+_GRID = np.arange(8, 320, 16, dtype=np.float64)
+GRID_X = np.tile(_GRID, 20)
+GRID_Y = np.repeat(_GRID, 20)
+
 
 def sample_target(image, box, area_factor, output_sz):
     """Crop a square region around `box`, resize it, and return the scale.
@@ -103,27 +111,65 @@ class StarkTracker:
         return self.state.copy()
 
     @staticmethod
-    def _extract_box(outputs):
-        """Return the 4-value box head, independent of output ordering.
+    def _decode_corner_heatmap(value):
+        """Decode the 20x20x2 corner heatmaps into normalized xyxy.
 
-        The HEF must expose a 4-value box output. If it exposes multiple
-        vstreams, pick the one whose flattened size is exactly 4 instead of
-        blindly taking the first output.
+        This is the host-side part of the ONNX box head that the HEF does not
+        contain: softmax over the 400 spatial cells of each corner heatmap,
+        then a soft-argmax using the 320x320 pixel-center grid. Verified
+        against the ONNX `pred_boxes` output.
+        """
+        heat = np.asarray(value, dtype=np.float64)
+        while heat.ndim > 3:
+            heat = heat[0]
+        if heat.shape == (2, 20, 20):
+            heat = np.transpose(heat, (1, 2, 0))
+        if heat.shape != (20, 20, 2):
+            raise RuntimeError(
+                f"STARK corner heatmap must be 20x20x2, got {heat.shape}"
+            )
+        coords = []
+        for channel in range(2):
+            logits = heat[..., channel].reshape(-1)
+            logits = logits - logits.max()
+            probs = np.exp(logits)
+            probs /= probs.sum()
+            coords.append(float(np.sum(probs * GRID_X) / SEARCH_SIZE))
+            coords.append(float(np.sum(probs * GRID_Y) / SEARCH_SIZE))
+        return np.asarray(coords, dtype=np.float64)
+
+    @classmethod
+    def _extract_box(cls, outputs):
+        """Return a normalized xyxy box from the HEF outputs.
+
+        The H8 HEF exposes `conv33` (20x20x2 corner heatmaps), not the final
+        4-value `pred_boxes`. Decode the heatmaps on the host. A 4-value output
+        is also accepted for HEFs that already include the box head.
         """
         candidates = []
         for name, value in outputs.items():
             try:
-                arr = np.asarray(value, dtype=np.float64).reshape(-1)
+                arr = np.asarray(value, dtype=np.float64)
             except Exception:
                 continue
-            candidates.append((name, arr))
-        for _, arr in candidates:
             if arr.size == 4:
-                return arr
+                return arr.reshape(-1)
+            candidates.append((name, value, arr))
+
+        for name, value, arr in candidates:
+            squeezed = arr
+            while squeezed.ndim > 3:
+                squeezed = squeezed[0]
+            if squeezed.shape in ((2, 20, 20), (20, 20, 2)):
+                return cls._decode_corner_heatmap(squeezed)
+
         shapes = ", ".join(
             f"{name}{np.asarray(value).shape}" for name, value in outputs.items()
         )
-        raise RuntimeError(f"STARK output has no 4-value box head; outputs: {shapes}")
+        raise RuntimeError(
+            "STARK output is neither a 4-value box nor a 20x20x2 corner "
+            f"heatmap; outputs: {shapes}"
+        )
 
     def update(self, frame):
         """Track one frame and return the new xywh state in image pixels."""
