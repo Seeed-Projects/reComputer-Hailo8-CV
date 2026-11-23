@@ -79,6 +79,7 @@ on:
           - yolov7_tiny
           - yolov7e6
           - yolov7x
+          - yolov9c
           - yolo26s
           - yolo26m
           - yolo26s_seg
@@ -233,6 +234,8 @@ jobs:
             description: YOLOv7e6 COCO object detection
           - model: yolov7x
             description: YOLOv7x COCO object detection
+          - model: yolov9c
+            description: YOLOv9c COCO object detection
           - model: yolo26s
             description: YOLO26s COCO object detection
           - model: yolo26m
