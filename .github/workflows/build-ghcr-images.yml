@@ -18,6 +18,7 @@ on:
           - all
           - centerpose_regnetx_800mf
           - stdc1
+          - bisenetv2
           - centernet_resnet_v1_18_postprocess
           - centernet_resnet_v1_50_postprocess
           - damoyolo_tinynas_l20_t
@@ -115,6 +116,8 @@ jobs:
             description: ArcFace MobileFaceNet face recognition
           - model: stdc1
             description: STDC1 semantic segmentation
+          - model: bisenetv2
+            description: BiSeNetV2 semantic segmentation
           - model: centernet_resnet_v1_18_postprocess
             description: CenterNet (resnet_v1_18) object detection
           - model: centernet_resnet_v1_50_postprocess
