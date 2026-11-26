@@ -379,8 +379,14 @@ async def get_config():
 @app.post("/api/config")
 async def update_config(payload: dict):
     config.update(
-        score_threshold=payload.get("score_threshold", payload.get("conf")),
-        nms_threshold=payload.get("nms_threshold", payload.get("iou")),
+        score_threshold=payload.get(
+            "score_threshold",
+            payload.get("conf", payload.get("obj_thresh")),
+        ),
+        nms_threshold=payload.get(
+            "nms_threshold",
+            payload.get("iou", payload.get("nms_thresh")),
+        ),
         max_faces=payload.get("max_faces"),
     )
     return await get_config()
@@ -399,12 +405,15 @@ async def upload_video(file: UploadFile = File(...)):
 
 @app.get("/api/video/list")
 async def list_videos():
-    files = []
+    uploads = []
     for name in sorted(os.listdir(UPLOAD_DIR)):
-        path = os.path.join(UPLOAD_DIR, name)
-        if os.path.isfile(path):
-            files.append({"filename": name, "size": os.path.getsize(path)})
-    return {"videos": files}
+        if os.path.isfile(os.path.join(UPLOAD_DIR, name)):
+            uploads.append(name)
+    outputs = []
+    for name in sorted(os.listdir(OUTPUT_DIR)):
+        if os.path.isfile(os.path.join(OUTPUT_DIR, name)):
+            outputs.append(name)
+    return {"uploads": uploads, "outputs": outputs}
 
 
 @app.post("/api/video/analyze")
@@ -419,7 +428,7 @@ async def analyze_video(filename: str = Form(...)):
     started = video_analyzer.start_analysis(input_path, output_path)
     if not started:
         raise HTTPException(status_code=409, detail="Another video is processing")
-    return {"success": True, "output": output_name}
+    return {"success": True, "status": "started", "output": output_name}
 
 
 @app.get("/api/video/status")
@@ -660,58 +669,214 @@ async def video_feed():
 async def index():
     return Response(
         content="""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Face Landmarks Lite - Hailo-8</title>
-<style>
-  body { margin: 0; background: #111; color: #eee; font-family: system-ui, sans-serif; }
-  header { padding: 18px 24px 8px; }
-  h1 { margin: 0 0 4px; font-size: 22px; }
-  p { margin: 4px 0; color: #9aa; }
-  main { padding: 0 24px 24px; }
-  img { width: 100%; max-width: 1280px; border: 1px solid #333; border-radius: 8px; background: #000; }
-  .controls { display: flex; flex-wrap: wrap; gap: 18px; margin: 14px 0; }
-  label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-  input[type=range] { width: 160px; }
-  code { color: #9fe; }
-</style>
-</head>
-<body>
-<header>
-  <h1>Face Landmarks Lite on Hailo-8</h1>
-  <p>Hailo-8 landmark HEF + OpenCV YuNet CPU face detector. 468 landmarks per face.</p>
-</header>
-<main>
-  <img src="/api/video_feed" alt="live preview">
-  <div class="controls">
-    <label>Face confidence <input id="conf" type="range" min="0.1" max="0.95" step="0.05" value="0.6"><span id="confv">0.60</span></label>
-    <label>NMS IoU <input id="iou" type="range" min="0.1" max="0.9" step="0.05" value="0.30"><span id="iouv">0.30</span></label>
-  </div>
-  <p>REST: <code>POST /api/models/face_landmarks_lite/predict</code></p>
-</main>
-<script>
-async function syncConfig() {
-  const conf = Number(document.getElementById('conf').value);
-  const iou = Number(document.getElementById('iou').value);
-  document.getElementById('confv').textContent = conf.toFixed(2);
-  document.getElementById('iouv').textContent = iou.toFixed(2);
-  await fetch('/api/config', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({score_threshold: conf, nms_threshold: iou})
-  });
-}
-fetch('/api/config').then(r => r.json()).then(c => {
-  if (c.score_threshold) { document.getElementById('conf').value = c.score_threshold; document.getElementById('confv').textContent = Number(c.score_threshold).toFixed(2); }
-  if (c.nms_threshold) { document.getElementById('iou').value = c.nms_threshold; document.getElementById('iouv').textContent = Number(c.nms_threshold).toFixed(2); }
-});
-document.getElementById('conf').addEventListener('input', syncConfig);
-document.getElementById('iou').addEventListener('input', syncConfig);
-</script>
-</body>
-</html>""",
+<html>
+  <head>
+    <title>Face Landmarks Lite · RPi5 + Hailo-8</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { background-color: #1a1a1a; color: white; text-align: center; font-family: sans-serif; margin: 0; padding: 20px; }
+      .container { max-width: 1200px; margin: 0 auto; }
+      .video-box { margin: 20px auto; display: inline-block; border: 5px solid #333; border-radius: 10px; overflow: hidden; background: #000; width: 100%; max-width: 900px; }
+      .controls { background: #2a2a2a; padding: 20px; border-radius: 10px; display: inline-block; text-align: left; min-width: 400px; vertical-align: top; margin: 10px; }
+      .control-group { margin-bottom: 15px; }
+      .control-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+      .slider-container { display: flex; align-items: center; gap: 15px; }
+      input[type=range] { flex-grow: 1; cursor: pointer; }
+      .value-display { min-width: 50px; font-family: monospace; background: #444; padding: 2px 8px; border-radius: 4px; text-align: center; }
+      h1 { color: #00e676; margin-bottom: 4px; }
+      .subtitle { color: #888; margin-top: 0; }
+      .tabs { display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid #333; }
+      .tab { padding: 10px 30px; cursor: pointer; border-bottom: 3px solid transparent; transition: 0.3s; font-weight: bold; }
+      .tab.active { border-bottom-color: #00e676; color: #00e676; }
+      .tab-content { display: none; }
+      .tab-content.active { display: block; }
+      .video-analysis { text-align: left; background: #2a2a2a; padding: 20px; border-radius: 10px; margin: 10px; }
+      .btn { background: #00e676; color: #000; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 5px; }
+      .btn:hover { background: #00c853; }
+      .btn:disabled { background: #555; cursor: not-allowed; }
+      .progress-container { width: 100%; background: #444; border-radius: 10px; margin: 15px 0; height: 20px; position: relative; overflow: hidden; }
+      .progress-bar { height: 100%; background: #00e676; width: 0%; transition: 0.3s; }
+      .progress-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; line-height: 20px; font-size: 12px; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000; }
+      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+      th, td { text-align: left; padding: 10px; border-bottom: 1px solid #444; }
+      th { color: #888; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Face Landmarks Lite · RPi5 + Hailo-8</h1>
+      <p class="subtitle">468 facial landmarks per face · Hailo-8 HEF + OpenCV YuNet CPU face ROI</p>
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('realtime', event)">Real-time Landmarks</div>
+        <div class="tab" onclick="showTab('analysis', event)">Local Video Analysis</div>
+      </div>
+
+      <div id="realtime" class="tab-content active">
+        <div class="video-box">
+          <img id="streamImg" src="/api/video_feed" style="max-width: 100%; height: auto;" alt="live preview">
+        </div>
+        <div class="controls">
+          <div class="control-group">
+            <label>Face Confidence Threshold</label>
+            <div class="slider-container">
+              <input type="range" id="confSlider" min="0.10" max="0.95" step="0.05" value="0.60">
+              <span id="confValue" class="value-display">0.60</span>
+            </div>
+          </div>
+          <div class="control-group">
+            <label>NMS IOU Threshold (CPU)</label>
+            <div class="slider-container">
+              <input type="range" id="iouSlider" min="0.10" max="0.90" step="0.05" value="0.30">
+              <span id="iouValue" class="value-display">0.30</span>
+            </div>
+          </div>
+          <p style="color:#888; margin-bottom:0;">REST: POST /api/models/face_landmarks_lite/predict</p>
+        </div>
+      </div>
+
+      <div id="analysis" class="tab-content">
+        <div class="video-analysis">
+          <h3>Analyze Local Video</h3>
+          <div class="control-group">
+            <label>Upload New Video (.mp4, .avi, .mov)</label>
+            <input type="file" id="videoUpload" accept=".mp4,.avi,.mov">
+            <button class="btn" id="uploadBtn" onclick="uploadVideo(event)">Upload</button>
+          </div>
+          <div id="processingArea" style="display: none;">
+            <p id="statusText">Processing: <span id="currentFileName">-</span></p>
+            <div class="progress-container">
+              <div id="progressBar" class="progress-bar"></div>
+              <div id="progressText" class="progress-text">0%</div>
+            </div>
+            <p id="errorText" style="color: #ff5252;"></p>
+          </div>
+          <div class="control-group">
+            <label>File Management</label>
+            <button class="btn" onclick="refreshFileList()">Refresh List</button>
+            <table>
+              <thead><tr><th>File Name</th><th>Action</th></tr></thead>
+              <tbody id="fileTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <p style="color: #888; margin-top: 20px;">Streaming via FastAPI + MJPEG | Port: 8000</p>
+    </div>
+    <script>
+      function showTab(tabId, event) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+        if (tabId === 'realtime') { document.getElementById('streamImg').src = '/api/video_feed'; }
+        else { document.getElementById('streamImg').src = ''; refreshFileList(); }
+      }
+
+      const confSlider = document.getElementById('confSlider');
+      const iouSlider = document.getElementById('iouSlider');
+      const confValue = document.getElementById('confValue');
+      const iouValue = document.getElementById('iouValue');
+
+      function updateConfig() {
+        const score_threshold = parseFloat(confSlider.value);
+        const nms_threshold = parseFloat(iouSlider.value);
+        confValue.innerText = score_threshold.toFixed(2);
+        iouValue.innerText = nms_threshold.toFixed(2);
+        fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score_threshold, nms_threshold })
+        });
+      }
+      confSlider.oninput = updateConfig;
+      iouSlider.oninput = updateConfig;
+      fetch('/api/config').then(res => res.json()).then(data => {
+        confSlider.value = data.score_threshold;
+        iouSlider.value = data.nms_threshold;
+        confValue.innerText = Number(data.score_threshold).toFixed(2);
+        iouValue.innerText = Number(data.nms_threshold).toFixed(2);
+      });
+
+      async function uploadVideo(event) {
+        const fileInput = document.getElementById('videoUpload');
+        if (!fileInput.files[0]) return alert('Please select a file');
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        const btn = event.currentTarget;
+        btn.disabled = true;
+        btn.innerText = 'Uploading...';
+        try {
+          const res = await fetch('/api/video/upload', { method: 'POST', body: formData });
+          if (!res.ok) throw new Error('Upload failed');
+          alert('Upload successful');
+          refreshFileList();
+        } catch (e) {
+          alert('Upload failed');
+        } finally {
+          btn.disabled = false;
+          btn.innerText = 'Upload';
+        }
+      }
+
+      async function refreshFileList() {
+        const res = await fetch('/api/video/list');
+        const data = await res.json();
+        const tbody = document.getElementById('fileTableBody');
+        tbody.innerHTML = '';
+        (data.uploads || []).forEach(f => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${f} (Original)</td><td><button class="btn" onclick="analyzeVideo('${f}')">Analyze</button></td>`;
+          tbody.appendChild(tr);
+        });
+        (data.outputs || []).forEach(f => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${f} (Analyzed)</td><td><button class="btn" onclick="window.open('/api/video/download/${f}')">Download</button></td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function analyzeVideo(filename) {
+        const formData = new FormData();
+        formData.append('filename', filename);
+        const res = await fetch('/api/video/analyze', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.status === 'started') {
+          startStatusPolling();
+        } else {
+          alert(data.detail || data.message || 'Error starting analysis');
+        }
+      }
+
+      let pollInterval;
+      function startStatusPolling() {
+        document.getElementById('processingArea').style.display = 'block';
+        if (pollInterval) clearInterval(pollInterval);
+        pollInterval = setInterval(async () => {
+          const res = await fetch('/api/video/status');
+          const data = await res.json();
+          document.getElementById('currentFileName').innerText = data.current_video;
+          document.getElementById('progressBar').style.width = data.progress + '%';
+          document.getElementById('progressText').innerText = data.progress + '%';
+          document.getElementById('errorText').innerText = data.error || '';
+          if (!data.is_processing && data.progress === 100) {
+            clearInterval(pollInterval);
+            alert('Analysis completed!');
+            refreshFileList();
+          } else if (!data.is_processing && data.error) {
+            clearInterval(pollInterval);
+          }
+        }, 1000);
+      }
+
+      fetch('/api/video/status').then(res => res.json()).then(data => {
+        if (data.is_processing) startStatusPolling();
+      });
+    </script>
+  </body>
+</html>
+""",
         media_type="text/html",
     )
 
