@@ -57,6 +57,7 @@ on:
           - yolact_regnetx_1_6gf
           - retinaface_mobilenet_v1
           - lightface_slim
+          - face_landmarks_lite
           - yolo26m_seg
           - yolo26x_seg
           - yolov5n_seg
@@ -195,6 +196,8 @@ jobs:
             description: RetinaFace MobileNet-v1 face detection
           - model: lightface_slim
             description: LightFace Slim ultra-lightweight face detection
+          - model: face_landmarks_lite
+            description: Face Landmarks Lite 468-point landmarks with YuNet face ROI
           - model: yolo26m_seg
             description: YOLO26m-seg instance segmentation
           - model: yolo26x_seg
