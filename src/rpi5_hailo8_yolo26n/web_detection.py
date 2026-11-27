@@ -1260,8 +1260,8 @@ def inference_loop(cap, model, co_helper, is_video_file, target_fps):
 
             inf_fps = 1.0 / inference_time if inference_time > 0 else 0
             fps_counter = 0.9 * fps_counter + 0.1 * inf_fps if fps_counter > 0 else inf_fps
-            cv2.putText(frame, f'Hailo FPS: {fps_counter:.1f}', (20, 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(frame, f'Hailo FPS: {fps_counter:.1f}', (20, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 2.0, (0, 255, 0), 4)
 
             frame_buffer.push_annotated(frame)
 
